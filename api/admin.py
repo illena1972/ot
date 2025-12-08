@@ -1,5 +1,11 @@
 from django.contrib import admin
-from .models import ClothesStockBatch, ClothesItem, ClothesIssue
+from .models import Employee, ClothesIssue, ClothesItem, ClothesStockBatch
+
+
+@admin.register(Employee)
+class EmployeeAdmin(admin.ModelAdmin):
+    search_fields = ('last_name', 'first_name', 'middle_name')
+    list_filter = ('department', 'service', 'position')
 
 
 @admin.register(ClothesStockBatch)

@@ -76,6 +76,59 @@ class ClothesItem(models.Model):
         return self.name
 
 
+
+
+# Модель: Партия на складе (ClothesStockBatch)
+class ClothesStockBatch(models.Model):
+    item = models.ForeignKey(
+        ClothesItem,
+        on_delete=models.PROTECT,
+        verbose_name="Вид одежды"
+    )
+
+    size = models.CharField(
+        "Размер",
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Размер обязателен для верхней одежды и обуви"
+    )
+
+    quantity = models.PositiveIntegerField("Количество на складе")
+
+    date_income = models.DateField("Дата поступления", default=timezone.now)
+
+    note = models.TextField("Примечание", blank=True, null=True)
+
+    def clean(self):
+        # Одежда тип TOP или SHOES — размер обязателен
+        if self.item.type in (ClothesType.TOP, ClothesType.SHOES) and not self.size:
+            raise ValidationError("Для размерной одежды размер обязателен.")
+
+        # Одежда тип OTHER — размер должен быть пустым
+        if self.item.type == ClothesType.OTHER and self.size:
+            raise ValidationError("Безразмерная одежда не должна иметь размер.")
+
+    def __str__(self):
+        s = f"{self.item.name}"
+        if self.size:
+            s += f" (размер {self.size})"
+        return s
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class ClothesIssue(models.Model):
     """Выдача спецодежды сотруднику"""
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, verbose_name="Сотрудник")
@@ -170,39 +223,3 @@ class ClothesIssue(models.Model):
         super().save(*args, **kwargs)
 
 
-# Модель: Партия на складе (ClothesStockBatch)
-class ClothesStockBatch(models.Model):
-    item = models.ForeignKey(
-        ClothesItem,
-        on_delete=models.PROTECT,
-        verbose_name="Вид одежды"
-    )
-
-    size = models.CharField(
-        "Размер",
-        max_length=20,
-        blank=True,
-        null=True,
-        help_text="Размер обязателен для верхней одежды и обуви"
-    )
-
-    quantity = models.PositiveIntegerField("Количество на складе")
-
-    date_income = models.DateField("Дата поступления", default=timezone.now)
-
-    note = models.TextField("Примечание", blank=True, null=True)
-
-    def clean(self):
-        # Одежда тип TOP или SHOES — размер обязателен
-        if self.item.type in (ClothesType.TOP, ClothesType.SHOES) and not self.size:
-            raise ValidationError("Для размерной одежды размер обязателен.")
-
-        # Одежда тип OTHER — размер должен быть пустым
-        if self.item.type == ClothesType.OTHER and self.size:
-            raise ValidationError("Безразмерная одежда не должна иметь размер.")
-
-    def __str__(self):
-        s = f"{self.item.name}"
-        if self.size:
-            s += f" (размер {self.size})"
-        return s
