@@ -1,0 +1,34 @@
+1. Установить node с сайта nodejs.org
+2. Проверить установку node -v и npm -v
+3. В корне проекта cd путь/к/проекту запустить:
+	npm create vite@latest frontend --template react
+	cd frontend
+	npm install
+	npm run dev
+Выбираем react и JavaScript + SWC
+Появится папка frontend и запустится сервер http://localhost:5173/
+4. Заходим в папку cd frontend
+5. Запускаем npm install axios  в cmd
+6. Создаем файл api.js в папке frontend/src/api/api.js. В нем указываем откуда будем брать API
+
+7. Установить django-cors-headers
+	В папке backend (где manage.py): pip install django-cors-headers
+	Добавить в INSTALLED_APPS
+	# settings.py
+	INSTALLED_APPS = [
+    	...
+    	"corsheaders",
+    	"rest_framework",
+	]
+	Middleware (ОЧЕНЬ ВАЖНО)
+	# settings.py
+	MIDDLEWARE = [
+    	"corsheaders.middleware.CorsMiddleware",  # ← ВЫШЕ CommonMiddleware
+   	 "django.middleware.common.CommonMiddleware",
+   	 ...
+	]
+
+
+
+cd frontend
+npm run dev

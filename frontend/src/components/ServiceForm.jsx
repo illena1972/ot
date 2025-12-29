@@ -1,0 +1,39 @@
+import { useState } from "react";
+import api from "../api/api";
+
+function ServiceForm({ onCreated }) {
+
+  // хранит то, что пользователь вводит
+  const [name, setName] = useState("");
+
+  // отправляет POST в Django
+  //  👉 { name } = { name: "Отдел кадров" }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    await api.post("services/", { name });
+    setName("");
+    alert("Служба добавлена");
+
+    // это callback от родителя, чтобы обновить список
+    if (onCreated) {
+      onCreated();
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <h3>Добавить службу</h3>
+
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Название службы"
+      />
+
+      <button type="submit">Сохранить</button>
+    </form>
+  );
+}
+
+export default ServiceForm;
