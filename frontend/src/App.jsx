@@ -3,6 +3,7 @@ import api from "./api/api";
 import DepartmentForm from "./components/DepartmentForm";
 import ServiceForm from "./components/ServiceForm";
 import PositionForm from "./components/PositionForm";
+import EmployeeForm from "./components/EmployeeForm";
 
 function App() {
   const [departments, setDepartments] = useState([]);
@@ -18,11 +19,14 @@ function App() {
 
   return (
     <div>
-      <h2>Подразделения</h2>
 
-      <DepartmentForm onCreated={loadDepartments} />
+
+      <DepartmentForm />
       <ServiceForm />
       <PositionForm />
+      <EmployeeForm />
+
+      <h2>Подразделения</h2>
 
       <ul>
         {departments.map(dep => (
@@ -30,6 +34,8 @@ function App() {
         ))}
       </ul>
     </div>
+
+
 
   );
 }
