@@ -9,6 +9,21 @@ import EmployeeForm from "./EmployeeForm";
 export default function EmployeeList() {
   const [employees, setEmployees] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState(null);
+
+
+
+const deleteEmployee = async () => {
+  try {
+    await api.delete(`employees/${employeeToDelete.id}/`);
+    setEmployeeToDelete(null);
+    loadEmployees();
+  } catch (err) {
+    console.error(err);
+    alert("Ошибка при удалении");
+  }
+};
+
 
   const loadEmployees = () => {
   api.get("employees/")
@@ -81,7 +96,7 @@ export default function EmployeeList() {
                     <button  className="text-blue-600 hover:text-blue-800 mr-1">
                          <i className="fas fa-edit"></i>
                     </button>
-                    <button  className="text-red-600 hover:text-red-800">
+                    <button  onClick={() => setEmployeeToDelete(emp)} title="Удалить"className="text-red-600 hover:text-red-800">
                          <i className="fas fa-trash"></i>
                     </button>
 
@@ -104,9 +119,45 @@ export default function EmployeeList() {
             )}
 
 
+            {employeeToDelete && (
+                  <EmployeeModal onClose={() => setEmployeeToDelete(null)}>
+                    <h2 className="text-xl font-bold mb-4">
+                      Удалить сотрудника
+                    </h2>
+
+                    <p className="text-gray-600 mb-6">
+                      Вы уверены, что хотите удалить сотрудника{" "}
+                      <strong>
+                        {employeeToDelete.last_name} {employeeToDelete.first_name} {employeeToDelete.middle_name}
+                      </strong>
+                      ?
+                    </p>
+
+                    <div className="flex justify-end space-x-4">
+                      <button
+                        onClick={() => setEmployeeToDelete(null)}
+                        className="px-4 py-2 rounded-lg border"
+                      >
+                        Отмена
+                      </button>
+
+                      <button
+                        onClick={deleteEmployee}
+                        className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  </EmployeeModal>
+                )}
+
+
 
         </div>
       </div>
     </div>
   );
 }
+
+
+
