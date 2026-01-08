@@ -61,8 +61,9 @@ export default function PositionList() {
                 <tr key={p.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-semibold">
                     <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                             <i className="fas fa-user text-blue-600"></i>
+
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                             <i class="fas fa-user-tie text-purple-600 text-xl"></i>
                         </div>
                     <span className="font-semibold text-gray-800">{p.name}</span>
                     </div>
