@@ -10,19 +10,23 @@ from .serializers import (
 
 
 class DepartmentViewSet(ModelViewSet):
-    queryset = Department.objects.all()
+    queryset = Department.objects.order_by("name")
     serializer_class = DepartmentSerializer
 
 
 class ServiceViewSet(ModelViewSet):
-    queryset = Service.objects.all()
+    queryset = Service.objects.order_by("name")
     serializer_class = ServiceSerializer
 
 
 class PositionViewSet(ModelViewSet):
-    queryset = Position.objects.all()
+    queryset = Position.objects.order_by("name")
     serializer_class = PositionSerializer
 
 class EmployeeViewSet(ModelViewSet):
-    queryset = Employee.objects.all()
+    queryset = Employee.objects.order_by(
+        "last_name",
+        "first_name",
+        "middle_name"
+    )
     serializer_class = EmployeeSerializer

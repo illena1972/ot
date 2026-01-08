@@ -48,4 +48,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
             "service_name",
             "position",
             "position_name",
+            "clothes_size",
+            "height",
+            "shoe_size",
         ]
