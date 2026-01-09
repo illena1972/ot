@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
 import api from "../../api/api";
 
-function PositionForm({ onSuccess }) {
+function PositionForm({ position, onSuccess }) {
   const [form, setForm] = useState({
-    name: "",
+    name: position?.name || "",
   });
+
+  useEffect(() => {
+  if (position) {
+    setForm({
+      name: position.name || "",
+    });
+  }
+}, [position]);
 
   const handleChange = (e) => {
     setForm({
@@ -14,19 +22,29 @@ function PositionForm({ onSuccess }) {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    await api.post("positions/", form);
-
-    if (onSuccess) {
-      onSuccess();
+  try {
+    if (position) {
+      // 🔄 редактирование
+      await api.put(`positions/${position.id}/`, form);
+    } else {
+      // ➕ создание
+      await api.post("positions/", form);
     }
-  };
+
+    if (onSuccess) onSuccess();
+  } catch (err) {
+    console.error(err);
+    alert("Ошибка при сохранении");
+  }
+};
+
 
   return (
       <form onSubmit={handleSubmit} className="space-y-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">
-          Добавление должности
+          {position ? "Редактировать должность" : "Добавить должность"}
         </h2>
 
         {/* Сетка формы */}
@@ -53,7 +71,7 @@ function PositionForm({ onSuccess }) {
                 type="submit"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold"
               >
-                Сохранить
+               {position ? "Сохранить изменения" : "Добавить"}
               </button>
             </div>
        </form>

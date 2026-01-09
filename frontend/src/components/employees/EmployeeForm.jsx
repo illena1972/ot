@@ -1,19 +1,37 @@
 import { useEffect, useState } from "react";
 import api from "../../api/api";
 
-function EmployeeForm({ onSuccess }) {
-  const [form, setForm] = useState({
-    last_name: "",
-    first_name: "",
-    middle_name: "",
-    sex: "M",
-    department: "",
-    service: "",
-    position: "",
-    clothes_size: "",
-    height: "",
-    shoe_size: "",
+function EmployeeForm({ employee, onSuccess }) {
+      const [form, setForm] = useState({
+      last_name: employee?.last_name || "",
+      first_name: employee?.first_name || "",
+      middle_name: employee?.middle_name || "",
+      sex: employee?.sex || "M",
+      department: employee?.department ? String(employee.department) : "",
+      service: employee?.service ? String(employee.service) : "",
+      position: employee?.position ? String(employee.position) : "",
+      clothes_size: employee?.clothes_size || "",
+      height: employee?.height || "",
+      shoe_size: employee?.shoe_size || "",
   });
+
+  useEffect(() => {
+  if (employee) {
+    setForm({
+      last_name: employee.last_name || "",
+      first_name: employee.first_name || "",
+      middle_name: employee.middle_name || "",
+      sex: employee.sex || "M",
+      department: employee?.department ? String(employee.department) : "",
+      service: employee?.service ? String(employee.service) : "",
+      position: employee?.position ? String(employee.position) : "",
+      clothes_size: employee.clothes_size || "",
+      height: employee.height || "",
+      shoe_size: employee.shoe_size || "",
+    });
+  }
+}, [employee]);
+
 
   const [departments, setDepartments] = useState([]);
   const [services, setServices] = useState([]);
@@ -33,19 +51,29 @@ function EmployeeForm({ onSuccess }) {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    await api.post("employees/", form);
-
-    if (onSuccess) {
-      onSuccess();
+  try {
+    if (employee) {
+      // 🔄 редактирование
+      await api.put(`employees/${employee.id}/`, form);
+    } else {
+      // ➕ создание
+      await api.post("employees/", form);
     }
-  };
+
+    if (onSuccess) onSuccess();
+  } catch (err) {
+    console.error(err);
+    alert("Ошибка при сохранении");
+  }
+};
+
 
   return (
       <form onSubmit={handleSubmit} className="space-y-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">
-          Добавление сотрудника
+        <h2 className="text-xl font-bold text-gray-800 mb-4">
+          {employee ? "Редактировать сотрудника" : "Добавить сотрудника"}
         </h2>
 
         {/* Сетка формы */}
@@ -146,7 +174,7 @@ function EmployeeForm({ onSuccess }) {
               </label>
               <select
                 name="service"
-                value={form.services}
+                value={form.service}
                 onChange={handleChange}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
                 required
@@ -167,7 +195,7 @@ function EmployeeForm({ onSuccess }) {
               </label>
               <select
                 name="position"
-                value={form.positions}
+                value={form.position}
                 onChange={handleChange}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
                 required
@@ -232,12 +260,12 @@ function EmployeeForm({ onSuccess }) {
         </div>
 
         <div className="flex justify-center space-x-4 pt-4">
-              <button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold"
-              >
-                Сохранить
-              </button>
+
+            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold">
+              {employee ? "Сохранить изменения" : "Добавить"}
+            </button>
+
+
             </div>
        </form>
 

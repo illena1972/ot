@@ -10,6 +10,7 @@ export default function PositionList() {
   const [positions, setPositions] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [positionToDelete, setPositionToDelete] = useState(null);
+  const [positionToEdit, setPositionToEdit] = useState(null);
 
   const deletePosition = async () => {
   try {
@@ -88,7 +89,7 @@ export default function PositionList() {
                   </td>
 
                   <td className="px-1 py-4 text-right">
-                    <button  className="text-blue-600 hover:text-blue-800 mr-1">
+                    <button onClick={() => setPositionToEdit(p)} className="text-blue-600 hover:text-blue-800 mr-1">
                          <i className="fas fa-edit"></i>
                     </button>
                     <button  onClick={() => setPositionToDelete(p)} className="text-red-600 hover:text-red-800">
@@ -112,6 +113,19 @@ export default function PositionList() {
                 />
               </PositionModal>
             )}
+
+            {positionToEdit && (
+              <PositionModal onClose={() => setPositionToEdit(null)}>
+                <PositionForm
+                  position={positionToEdit}
+                  onSuccess={() => {
+                    setPositionToEdit(null);
+                    loadPositions();
+                  }}
+                />
+              </PositionModal>
+            )}
+
 
 
             {positionToDelete && (

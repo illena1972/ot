@@ -1,10 +1,19 @@
 import { useEffect, useState } from "react";
 import api from "../../api/api";
 
-function DepartmentForm({ onSuccess }) {
+function DepartmentForm({ department, onSuccess }) {
   const [form, setForm] = useState({
-    name: "",
+    name: department?.name || "",
   });
+
+
+  useEffect(() => {
+  if (department) {
+    setForm({
+      name: department.name || "",
+    });
+  }
+}, [department]);
 
   const handleChange = (e) => {
     setForm({
@@ -14,19 +23,29 @@ function DepartmentForm({ onSuccess }) {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    await api.post("departments/", form);
-
-    if (onSuccess) {
-      onSuccess();
+  try {
+    if (department) {
+      // 🔄 редактирование
+      await api.put(`departments/${department.id}/`, form);
+    } else {
+      // ➕ создание
+      await api.post("departments/", form);
     }
-  };
+
+    if (onSuccess) onSuccess();
+  } catch (err) {
+    console.error(err);
+    alert("Ошибка при сохранении");
+  }
+};
+
 
   return (
       <form onSubmit={handleSubmit} className="space-y-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">
-          Добавление подразделения
+          {department ? "Редактировать подразделение" : "Добавить подразделение"}
         </h2>
 
         {/* Сетка формы */}
@@ -53,7 +72,7 @@ function DepartmentForm({ onSuccess }) {
                 type="submit"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold"
               >
-                Сохранить
+                {department ? "Сохранить изменения" : "Добавить"}
               </button>
             </div>
        </form>

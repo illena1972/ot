@@ -10,6 +10,7 @@ export default function ServiceList() {
   const [services, setServices] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState(null);
+  const [serviceToEdit, setServiceToEdit] = useState(null);
 
   const deleteService = async () => {
   try {
@@ -86,7 +87,7 @@ export default function ServiceList() {
                   </td>
 
                   <td className="px-1 py-4 text-right">
-                    <button  className="text-blue-600 hover:text-blue-800 mr-1">
+                    <button onClick={() => setServiceToEdit(s)} className="text-blue-600 hover:text-blue-800 mr-1">
                          <i className="fas fa-edit"></i>
                     </button>
                     <button  onClick={() => setServiceToDelete(s)} className="text-red-600 hover:text-red-800">
@@ -110,6 +111,19 @@ export default function ServiceList() {
                 />
               </ServiceModal>
             )}
+
+            {serviceToEdit && (
+              <ServiceModal onClose={() => setServiceToEdit(null)}>
+                <ServiceForm
+                  service={serviceToEdit}
+                  onSuccess={() => {
+                    setServiceToEdit(null);
+                    loadServices();
+                  }}
+                />
+              </ServiceModal>
+            )}
+
 
             {serviceToDelete && (
               <ServiceModal onClose={() => setServiceToDelete(null)}>

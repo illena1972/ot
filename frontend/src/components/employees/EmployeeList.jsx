@@ -9,10 +9,11 @@ import EmployeeForm from "./EmployeeForm";
 export default function EmployeeList() {
   const [employees, setEmployees] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [employeeToDelete, setEmployeeToDelete] = useState(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState(null);  // для удаления
+  const [employeeToEdit, setEmployeeToEdit] = useState(null);      // для редактирования
 
 
-
+// функция удаления
 const deleteEmployee = async () => {
   try {
     await api.delete(`employees/${employeeToDelete.id}/`);
@@ -93,10 +94,10 @@ const deleteEmployee = async () => {
                   <td className="px-6 py-4">{emp.service_name}</td>
                   <td className="px-6 py-4">{emp.department_name}</td>
                   <td className="px-1 py-4 text-right">
-                    <button  className="text-blue-600 hover:text-blue-800 mr-1">
+                    <button onClick={() => setEmployeeToEdit(emp)} className="text-blue-600 hover:text-blue-800 mr-1">
                          <i className="fas fa-edit"></i>
                     </button>
-                    <button  onClick={() => setEmployeeToDelete(emp)} title="Удалить"className="text-red-600 hover:text-red-800">
+                    <button  onClick={() => setEmployeeToDelete(emp)} title="Удалить" className="text-red-600 hover:text-red-800">
                          <i className="fas fa-trash"></i>
                     </button>
 
@@ -107,6 +108,7 @@ const deleteEmployee = async () => {
 
           </table>
 
+           {/* модальное окно для добавления */}
           {showModal && (
               <EmployeeModal onClose={() => setShowModal(false)}>
                 <EmployeeForm
@@ -118,6 +120,21 @@ const deleteEmployee = async () => {
               </EmployeeModal>
             )}
 
+            {/* модальное окно для редактирования */}
+            {employeeToEdit && (
+                  <EmployeeModal onClose={() => setEmployeeToEdit(null)}>
+                    <EmployeeForm
+                      employee={employeeToEdit}
+                      onSuccess={() => {
+                        setEmployeeToEdit(null);
+                        loadEmployees();
+                      }}
+                    />
+                  </EmployeeModal>
+                )}
+
+
+            {/* модальное окно для удаления */}
 
             {employeeToDelete && (
                   <EmployeeModal onClose={() => setEmployeeToDelete(null)}>

@@ -10,6 +10,8 @@ export default function DepartmentList() {
   const [departments, setDepartments] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [departmentToDelete, setDepartmentToDelete] = useState(null);
+  const [departmentToEdit, setDepartmentToEdit] = useState(null);
+
 
   const deleteDepartment = async () => {
   try {
@@ -86,7 +88,7 @@ export default function DepartmentList() {
                   </td>
 
                   <td className="px-1 py-4 text-right">
-                    <button  className="text-blue-600 hover:text-blue-800 mr-1">
+                    <button onClick={() => setDepartmentToEdit(dep)} className="text-blue-600 hover:text-blue-800 mr-1">
                          <i className="fas fa-edit"></i>
                     </button>
                     <button  onClick={() => setDepartmentToDelete(dep)} className="text-red-600 hover:text-red-800">
@@ -110,6 +112,20 @@ export default function DepartmentList() {
                 />
               </DepartmentModal>
             )}
+
+
+            {departmentToEdit && (
+              <DepartmentModal onClose={() => setDepartmentToEdit(null)}>
+                <DepartmentForm
+                  department={departmentToEdit}
+                  onSuccess={() => {
+                    setDepartmentToEdit(null);
+                    loadDepartments();
+                  }}
+                />
+              </DepartmentModal>
+            )}
+
 
             {departmentToDelete && (
                   <DepartmentModal onClose={() => setDepartmentToDelete(null)}>
