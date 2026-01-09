@@ -9,6 +9,19 @@ import DepartmentForm from "./DepartmentForm";
 export default function DepartmentList() {
   const [departments, setDepartments] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [departmentToDelete, setDepartmentToDelete] = useState(null);
+
+  const deleteDepartment = async () => {
+  try {
+    await api.delete(`departments/${departmentToDelete.id}/`);
+    setDepartmentToDelete(null);
+    loadDepartments();
+  } catch (err) {
+    console.error(err);
+    alert("Ошибка при удалении");
+  }
+};
+
 
   const loadDepartments = () => {
   api.get("departments/")
@@ -76,7 +89,7 @@ export default function DepartmentList() {
                     <button  className="text-blue-600 hover:text-blue-800 mr-1">
                          <i className="fas fa-edit"></i>
                     </button>
-                    <button  className="text-red-600 hover:text-red-800">
+                    <button  onClick={() => setDepartmentToDelete(dep)} className="text-red-600 hover:text-red-800">
                          <i className="fas fa-trash"></i>
                     </button>
 
@@ -97,6 +110,39 @@ export default function DepartmentList() {
                 />
               </DepartmentModal>
             )}
+
+            {departmentToDelete && (
+                  <DepartmentModal onClose={() => setDepartmentToDelete(null)}>
+                    <h2 className="text-xl font-bold mb-4">
+                      Удалить подразделение
+                    </h2>
+
+                    <p className="text-gray-600 mb-6">
+                      Вы уверены, что хотите удалить подразделение{" "}
+                      <strong>
+                        {departmentToDelete.name}
+                      </strong>
+                      ?
+                    </p>
+
+                    <div className="flex justify-end space-x-4">
+                      <button
+                        onClick={() => setDepartmentToDelete(null)}
+                        className="px-4 py-2 rounded-lg border"
+                      >
+                        Отмена
+                      </button>
+
+                      <button
+                        onClick={deleteDepartment}
+                        className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  </DepartmentModal>
+                )}
+
 
 
 

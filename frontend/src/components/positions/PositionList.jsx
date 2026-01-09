@@ -9,6 +9,20 @@ import PositionForm from "./PositionForm";
 export default function PositionList() {
   const [positions, setPositions] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [positionToDelete, setPositionToDelete] = useState(null);
+
+  const deletePosition = async () => {
+  try {
+    await api.delete(`positions/${positionToDelete.id}/`);
+    setPositionToDelete(null);
+    loadPositions();
+  } catch (err) {
+    console.error(err);
+    alert("Ошибка при удалении");
+  }
+};
+
+
 
   const loadPositions = () => {
   api.get("positions/")
@@ -62,8 +76,8 @@ export default function PositionList() {
                   <td className="px-6 py-4 font-semibold">
                     <div className="flex items-center space-x-3">
 
-                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                             <i class="fas fa-user-tie text-purple-600 text-xl"></i>
+                        <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                             <i className="fas fa-user-tie text-purple-600 text-xl"></i>
                         </div>
                     <span className="font-semibold text-gray-800">{p.name}</span>
                     </div>
@@ -77,7 +91,7 @@ export default function PositionList() {
                     <button  className="text-blue-600 hover:text-blue-800 mr-1">
                          <i className="fas fa-edit"></i>
                     </button>
-                    <button  className="text-red-600 hover:text-red-800">
+                    <button  onClick={() => setPositionToDelete(p)} className="text-red-600 hover:text-red-800">
                          <i className="fas fa-trash"></i>
                     </button>
 
@@ -96,6 +110,39 @@ export default function PositionList() {
                     loadPositions(); // обновим таблицу
                   }}
                 />
+              </PositionModal>
+            )}
+
+
+            {positionToDelete && (
+              <PositionModal onClose={() => setPositionToDelete(null)}>
+                <h2 className="text-xl font-bold mb-4">
+                  Удалить должность
+                </h2>
+
+                <p className="text-gray-600 mb-6">
+                  Вы уверены, что хотите удалить должность{" "}
+                  <strong>
+                    {positionToDelete.name}
+                  </strong>
+                  ?
+                </p>
+
+                <div className="flex justify-end space-x-4">
+                  <button
+                    onClick={() => setPositionToDelete(null)}
+                    className="px-4 py-2 rounded-lg border"
+                  >
+                    Отмена
+                  </button>
+
+                  <button
+                    onClick={deletePosition}
+                    className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                  >
+                    Удалить
+                  </button>
+                </div>
               </PositionModal>
             )}
 

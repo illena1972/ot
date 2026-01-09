@@ -9,6 +9,19 @@ import ServiceForm from "./ServiceForm";
 export default function ServiceList() {
   const [services, setServices] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState(null);
+
+  const deleteService = async () => {
+  try {
+    await api.delete(`services/${serviceToDelete.id}/`);
+    setServiceToDelete(null);
+    loadServices();
+  } catch (err) {
+    console.error(err);
+    alert("Ошибка при удалении");
+  }
+};
+
 
   const loadServices = () => {
   api.get("services/")
@@ -61,8 +74,8 @@ export default function ServiceList() {
                 <tr key={s.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-semibold">
                     <div className="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                             <i class="fas fa-users-cog text-green-600"></i>
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                             <i className="fas fa-users-cog text-green-600"></i>
                         </div>
                     <span className="font-semibold text-gray-800">{s.name}</span>
                     </div>
@@ -76,7 +89,7 @@ export default function ServiceList() {
                     <button  className="text-blue-600 hover:text-blue-800 mr-1">
                          <i className="fas fa-edit"></i>
                     </button>
-                    <button  className="text-red-600 hover:text-red-800">
+                    <button  onClick={() => setServiceToDelete(s)} className="text-red-600 hover:text-red-800">
                          <i className="fas fa-trash"></i>
                     </button>
 
@@ -97,6 +110,39 @@ export default function ServiceList() {
                 />
               </ServiceModal>
             )}
+
+            {serviceToDelete && (
+              <ServiceModal onClose={() => setServiceToDelete(null)}>
+                <h2 className="text-xl font-bold mb-4">
+                  Удалить службу
+                </h2>
+
+                <p className="text-gray-600 mb-6">
+                  Вы уверены, что хотите удалить службу{" "}
+                  <strong>
+                    {serviceToDelete.name}
+                  </strong>
+                  ?
+                </p>
+
+                <div className="flex justify-end space-x-4">
+                  <button
+                    onClick={() => setServiceToDelete(null)}
+                    className="px-4 py-2 rounded-lg border"
+                  >
+                    Отмена
+                  </button>
+
+                  <button
+                    onClick={deleteService}
+                    className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                  >
+                    Удалить
+                  </button>
+                </div>
+              </ServiceModal>
+            )}
+
 
 
 
