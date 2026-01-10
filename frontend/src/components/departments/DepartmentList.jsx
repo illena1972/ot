@@ -63,44 +63,72 @@ export default function DepartmentList() {
       {/* Таблица */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase">Наименование</th>
-                <th className="px-6 py-4 text-right text-xs font-semibold uppercase">Действия</th>
-              </tr>
-            </thead>
 
-            <tbody className="divide-y">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {departments.map(dep => (
-                <tr key={dep.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-semibold">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                             <i className="fas fa-user text-blue-600"></i>
-                        </div>
-                    <span className="font-semibold text-gray-800">{dep.name}</span>
+                <div
+                  key={dep.id}
+                  className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition"
+                >
+                  {/* Верх карточки */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <i className="fas fa-industry text-blue-600 text-xl"></i>
                     </div>
 
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => setDepartmentToEdit(dep)}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        <i className="fas fa-edit"></i>
+                      </button>
 
+                      <button
+                        onClick={() => setDepartmentToDelete(dep)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
 
+                  {/* Название */}
+                  <h3 className="text-lg font-bold text-gray-800 mb-2">
+                    {dep.name}
+                  </h3>
 
-                  </td>
-
-                  <td className="px-1 py-4 text-right">
-                    <button onClick={() => setDepartmentToEdit(dep)} className="text-blue-600 hover:text-blue-800 mr-1">
-                         <i className="fas fa-edit"></i>
-                    </button>
-                    <button  onClick={() => setDepartmentToDelete(dep)} className="text-red-600 hover:text-red-800">
-                         <i className="fas fa-trash"></i>
-                    </button>
-
-                  </td>
-                </tr>
+                  {/* Количество сотрудников */}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Сотрудников:</span>
+                    <span className="font-semibold text-gray-800">
+                      {dep.employee_count ?? "—"}
+                    </span>
+                  </div>
+                </div>
               ))}
-            </tbody>
+        </div>
 
-          </table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
           {showModal && (
               <DepartmentModal onClose={() => setShowModal(false)}>
