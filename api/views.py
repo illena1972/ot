@@ -35,7 +35,7 @@ class EmployeeViewSet(ModelViewSet):
     queryset = Employee.objects.select_related(
         "department", "service", "position"
     ).order_by("last_name", "first_name")
-    
+
     serializer_class = EmployeeSerializer
 
     filter_backends = [DjangoFilterBackend, SearchFilter]

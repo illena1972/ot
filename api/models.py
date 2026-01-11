@@ -61,6 +61,12 @@ class Employee(models.Model):
         return f"{self.last_name} {self.first_name} {self.middle_name or ''}".strip()
 
 
+
+
+
+
+
+
 class ClothesType(models.TextChoices):
     """Тип одежды по размеру"""
     TOP = "top", "Верхняя одежда (имеет размер)"

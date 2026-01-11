@@ -39,6 +39,22 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
           <i className="fas fa-id-badge w-5"></i>
           <span>Должности</span>
         </div>
+
+
+
+        <div className="text-xs uppercase text-blue-300 px-4">Спецодежда</div>
+
+        <div onClick={() => setCurrentPage("clothes")} className={linkClass("clothes")}>
+          <i className="fas fa-tshirt w-5"></i>
+          <span>Каталог одежды</span>
+        </div>
+
+        <div onClick={() => setCurrentPage("stocks")} className={linkClass("stocks")}>
+          <i className="fas fa-warehouse w-5"></i>
+          <span>Остатки на складе</span>
+        </div>
+
+
       </nav>
     </aside>
 
