@@ -1,4 +1,5 @@
 # views.py
+from django.db.models import Count
 from rest_framework.viewsets import ModelViewSet
 from .models import Department, Service, Position, Employee
 from .serializers import (
@@ -8,9 +9,16 @@ from .serializers import (
     EmployeeSerializer,
 )
 
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter
+
 
 class DepartmentViewSet(ModelViewSet):
-    queryset = Department.objects.order_by("name")
+    queryset = (
+        Department.objects
+        .annotate(employee_count=Count("employee"))
+        .order_by("name")
+    )
     serializer_class = DepartmentSerializer
 
 
@@ -24,9 +32,16 @@ class PositionViewSet(ModelViewSet):
     serializer_class = PositionSerializer
 
 class EmployeeViewSet(ModelViewSet):
-    queryset = Employee.objects.order_by(
-        "last_name",
-        "first_name",
-        "middle_name"
-    )
+    queryset = Employee.objects.select_related(
+        "department", "service", "position"
+    ).order_by("last_name", "first_name")
+    
     serializer_class = EmployeeSerializer
+
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+
+    # фильтр по подразделению
+    filterset_fields = ["department"]
+
+    # 🔍 поиск ТОЛЬКО по фамилии
+    search_fields = ["last_name"]

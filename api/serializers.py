@@ -4,9 +4,11 @@ from .models import Department, Service, Position, Employee
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
+    employee_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Department
-        fields = "__all__"
+        fields = ["id", "name", "employee_count"]
 
 
 class ServiceSerializer(serializers.ModelSerializer):

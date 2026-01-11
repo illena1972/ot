@@ -12,6 +12,13 @@ export default function EmployeeList() {
   const [employeeToDelete, setEmployeeToDelete] = useState(null);  // для удаления
   const [employeeToEdit, setEmployeeToEdit] = useState(null);      // для редактирования
 
+  const [search, setSearch] = useState("");   // для поиска
+  const [departments, setDepartments] = useState([]);   // для загрузки в select
+
+  const [selectedDepartment, setSelectedDepartment] = useState("");   // для фильтра по подразделениям
+
+
+
 
 // функция удаления
 const deleteEmployee = async () => {
@@ -30,11 +37,25 @@ const deleteEmployee = async () => {
   api.get("employees/")
     .then(res => setEmployees(res.data))
     .catch(err => console.error(err));
-};
+  };
+
+  const filteredEmployees = employees.filter(emp => {
+      const matchesSearch =
+        emp.last_name.toLowerCase().includes(search.toLowerCase());
+
+      const matchesDepartment =
+        !selectedDepartment || emp.department === Number(selectedDepartment);
+
+      return matchesSearch && matchesDepartment;
+  });
 
 
   useEffect(() => {
       loadEmployees();
+  }, []);
+
+  useEffect(() => {
+    api.get("departments/").then(res => setDepartments(res.data));
   }, []);
 
 
@@ -64,6 +85,50 @@ const deleteEmployee = async () => {
       {/* Таблица */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
+
+
+        <div className="p-4 border-b border-gray-100">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-3 sm:space-y-0">
+
+                {/* Поиск */}
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    placeholder="Поиск по фамилии сотрудника"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Фильтр по подразделению */}
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => setSelectedDepartment(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Все подразделения</option>
+                  {departments.map(dep => (
+                    <option key={dep.id} value={dep.id}>
+                      {dep.name}
+                    </option>
+                  ))}
+                </select>
+
+              </div>
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
@@ -76,7 +141,7 @@ const deleteEmployee = async () => {
             </thead>
 
             <tbody className="divide-y">
-              {employees.map(emp => (
+              {filteredEmployees.map(emp => (
                 <tr key={emp.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-semibold">
                     <div className="flex items-center space-x-3">
