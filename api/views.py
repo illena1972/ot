@@ -1,12 +1,13 @@
 # views.py
 from django.db.models import Count
 from rest_framework.viewsets import ModelViewSet
-from .models import Department, Service, Position, Employee
+from .models import Department, Service, Position, Employee, ClothesItem
 from .serializers import (
     DepartmentSerializer,
     ServiceSerializer,
     PositionSerializer,
     EmployeeSerializer,
+    ClothesItemSerializer,
 )
 
 from django_filters.rest_framework import DjangoFilterBackend
@@ -45,3 +46,8 @@ class EmployeeViewSet(ModelViewSet):
 
     # 🔍 поиск ТОЛЬКО по фамилии
     search_fields = ["last_name"]
+
+
+class ClothesItemViewSet(ModelViewSet):
+    queryset = ClothesItem.objects.order_by("name")
+    serializer_class = ClothesItemSerializer

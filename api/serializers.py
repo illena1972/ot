@@ -1,6 +1,6 @@
 # serializers.py
 from rest_framework import serializers
-from .models import Department, Service, Position, Employee
+from .models import Department, Service, Position, Employee, ClothesItem
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -54,3 +54,10 @@ class EmployeeSerializer(serializers.ModelSerializer):
             "height",
             "shoe_size",
         ]
+
+class ClothesItemSerializer(serializers.ModelSerializer):
+    type_label = serializers.CharField(source="get_type_display", read_only=True)
+
+    class Meta:
+        model = ClothesItem
+        fields = ["id", "name", "type", "type_label"]

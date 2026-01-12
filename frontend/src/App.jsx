@@ -9,6 +9,7 @@ import EmployeeList from "./components/employees/EmployeeList";
 import DepartmentList from "./components/departments/DepartmentList";
 import ServiceList from "./components/services/ServiceList";
 import PositionList from "./components/positions/PositionList";
+import ClothesList from "./components/clothes/ClothesList";
 
 function App() {
   return (
@@ -20,6 +21,8 @@ function App() {
         if (page === "departments") return <DepartmentList />;
         if (page === "services") return <ServiceList />;
         if (page === "positions") return <PositionList />;
+        if (page === "clothes") return <ClothesList />;
+
       }}
     </Layout>
   );

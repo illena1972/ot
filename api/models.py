@@ -69,8 +69,8 @@ class Employee(models.Model):
 
 class ClothesType(models.TextChoices):
     """Тип одежды по размеру"""
-    TOP = "top", "Верхняя одежда (имеет размер)"
-    SHOES = "shoes", "Обувь (имеет размер)"
+    TOP = "top", "Верхняя одежда"
+    SHOES = "shoes", "Обувь"
     OTHER = "other", "Безразмерная экипировка"
 
 

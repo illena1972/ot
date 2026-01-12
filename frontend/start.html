@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="ru" style="height: auto; min-height: 100%;">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система управления спецодеждой</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-gray-50" style="height: auto; min-height: 100%;" x-data="{
+    sidebarOpen: false,
+    currentPage: 'dashboard',
+    showAddModal: false,
+    showEditModal: false,
+    showDeleteModal: false,
+    employees: [
+        { id: 1, name: 'Иванов Иван Иванович', department: 'Производство', position: 'Слесарь', service: 'Механический цех' },
+        { id: 2, name: 'Петрова Мария Сергеевна', department: 'Производство', position: 'Токарь', service: 'Механический цех' },
+        { id: 3, name: 'Сидоров Петр Алексеевич', department: 'Склад', position: 'Кладовщик', service: 'Складское хозяйство' }
+    ],
+    clothing: [
+        { id: 1, name: 'Костюм рабочий', category: 'Одежда', size: '52-54', stock: 45 },
+        { id: 2, name: 'Ботинки защитные', category: 'Обувь', size: '42', stock: 28 },
+        { id: 3, name: 'Перчатки х/б', category: 'СИЗ рук', size: 'Универсальный', stock: 150 }
+    ],
+    issued: [
+        { id: 1, employee: 'Иванов Иван Иванович', item: 'Костюм рабочий', size: '52-54', date: '15.01.2024', quantity: 1 },
+        { id: 2, employee: 'Петрова Мария Сергеевна', item: 'Ботинки защитные', size: '38', date: '18.01.2024', quantity: 1 },
+        { id: 3, employee: 'Сидоров Петр Алексеевич', item: 'Перчатки х/б', size: 'Универсальный', date: '20.01.2024', quantity: 5 }
+    ]
+}">
+
+<div class="flex">
+
+
+     <!--  начало боковой панели    -->
+
+    <aside class="w-64 bg-blue-900 text-white flex flex-col lg:block hidden">
+        <div class="p-6 border-b border-blue-800">
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-hard-hat text-3xl text-blue-300"></i>
+                <div>
+                    <h1 class="text-xl font-bold">СпецОдежда</h1>
+                    <p class="text-xs text-blue-300">Система учета</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 p-4 space-y-2">
+            <a @click="currentPage = 'dashboard'" :class="currentPage === 'dashboard' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-chart-line w-5"></i>
+                <span>Главная</span>
+            </a>
+
+            <div class="pt-4 pb-2 px-4 text-xs font-semibold text-blue-300 uppercase">Справочники</div>
+
+            <a @click="currentPage = 'employees'" :class="currentPage === 'employees' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-users w-5"></i>
+                <span>Сотрудники</span>
+            </a>
+
+            <a @click="currentPage = 'departments'" :class="currentPage === 'departments' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-building w-5"></i>
+                <span>Подразделения</span>
+            </a>
+
+            <a @click="currentPage = 'services'" :class="currentPage === 'services' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-briefcase w-5"></i>
+                <span>Службы</span>
+            </a>
+
+            <a @click="currentPage = 'positions'" :class="currentPage === 'positions' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-id-badge w-5"></i>
+                <span>Должности</span>
+            </a>
+
+            <div class="pt-4 pb-2 px-4 text-xs font-semibold text-blue-300 uppercase">Спецодежда</div>
+
+            <a @click="currentPage = 'clothing'" :class="currentPage === 'clothing' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-tshirt w-5"></i>
+                <span>Каталог одежды</span>
+            </a>
+
+            <a @click="currentPage = 'stock'" :class="currentPage === 'stock' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-warehouse w-5"></i>
+                <span>Остатки на складе</span>
+            </a>
+
+            <div class="pt-4 pb-2 px-4 text-xs font-semibold text-blue-300 uppercase">Операции</div>
+
+            <a @click="currentPage = 'issue'" :class="currentPage === 'issue' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-hand-holding w-5"></i>
+                <span>Выдача одежды</span>
+            </a>
+
+            <a @click="currentPage = 'report'" :class="currentPage === 'report' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-table w-5"></i>
+                <span>Отчет по выдаче</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-blue-800">
+            <div class="flex items-center space-x-3 px-4 py-3">
+                <div class="w-10 h-10 bg-blue-700 rounded-full flex items-center justify-center">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-semibold">Администратор</p>
+                    <p class="text-xs text-blue-300">admin@company.ru</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+   <!--  конец боковой панели    -->
+
+    <div class="lg:hidden fixed top-0 left-0 right-0 bg-blue-900 text-white z-50 p-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-hard-hat text-2xl text-blue-300"></i>
+                <h1 class="text-lg font-bold">СпецОдежда</h1>
+            </div>
+            <button @click="sidebarOpen = !sidebarOpen" class="text-2xl">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </div>
+
+    <div x-show="sidebarOpen" @click="sidebarOpen = false" class="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"></div>
+
+    <aside x-show="sidebarOpen" class="lg:hidden fixed top-0 left-0 bottom-0 w-64 bg-blue-900 text-white z-50 flex flex-col overflow-y-auto">
+        <div class="p-6 border-b border-blue-800">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-hard-hat text-3xl text-blue-300"></i>
+                    <div>
+                        <h1 class="text-xl font-bold">СпецОдежда</h1>
+                        <p class="text-xs text-blue-300">Система учета</p>
+                    </div>
+                </div>
+                <button @click="sidebarOpen = false" class="text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <nav class="flex-1 p-4 space-y-2">
+            <a @click="currentPage = 'dashboard'; sidebarOpen = false" :class="currentPage === 'dashboard' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-chart-line w-5"></i>
+                <span>Главная</span>
+            </a>
+
+            <div class="pt-4 pb-2 px-4 text-xs font-semibold text-blue-300 uppercase">Справочники</div>
+
+            <a @click="currentPage = 'employees'; sidebarOpen = false" :class="currentPage === 'employees' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-users w-5"></i>
+                <span>Сотрудники</span>
+            </a>
+
+            <a @click="currentPage = 'departments'; sidebarOpen = false" :class="currentPage === 'departments' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-building w-5"></i>
+                <span>Подразделения</span>
+            </a>
+
+            <a @click="currentPage = 'services'; sidebarOpen = false" :class="currentPage === 'services' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-briefcase w-5"></i>
+                <span>Службы</span>
+            </a>
+
+            <a @click="currentPage = 'positions'; sidebarOpen = false" :class="currentPage === 'positions' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-id-badge w-5"></i>
+                <span>Должности</span>
+            </a>
+
+            <div class="pt-4 pb-2 px-4 text-xs font-semibold text-blue-300 uppercase">Спецодежда</div>
+
+            <a @click="currentPage = 'clothing'; sidebarOpen = false" :class="currentPage === 'clothing' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-tshirt w-5"></i>
+                <span>Каталог одежды</span>
+            </a>
+
+            <a @click="currentPage = 'stock'; sidebarOpen = false" :class="currentPage === 'stock' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-warehouse w-5"></i>
+                <span>Остатки на складе</span>
+            </a>
+
+            <div class="pt-4 pb-2 px-4 text-xs font-semibold text-blue-300 uppercase">Операции</div>
+
+            <a @click="currentPage = 'issue'; sidebarOpen = false" :class="currentPage === 'issue' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-hand-holding w-5"></i>
+                <span>Выдача одежды</span>
+            </a>
+
+            <a @click="currentPage = 'report'; sidebarOpen = false" :class="currentPage === 'report' ? 'bg-blue-800' : 'hover:bg-blue-800'" class="flex items-center space-x-3 px-4 py-3 rounded-lg cursor-pointer transition">
+                <i class="fas fa-table w-5"></i>
+                <span>Отчет по выдаче</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 lg:pt-0 pt-20">
+        <div x-show="currentPage === 'dashboard'" class="p-4 sm:p-6 lg:p-8">
+            <div class="mb-8">
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Панель управления</h2>
+                <p class="text-gray-600 mt-2">Обзор системы учета спецодежды</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-users text-blue-600 text-xl"></i>
+                        </div>
+                        <span class="text-green-500 text-sm font-semibold">+12%</span>
+                    </div>
+                    <h3 class="text-gray-600 text-sm font-medium mb-1">Всего сотрудников</h3>
+                    <p class="text-3xl font-bold text-gray-800">248</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-tshirt text-green-600 text-xl"></i>
+                        </div>
+                        <span class="text-green-500 text-sm font-semibold">+8%</span>
+                    </div>
+                    <h3 class="text-gray-600 text-sm font-medium mb-1">Позиций одежды</h3>
+                    <p class="text-3xl font-bold text-gray-800">156</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-warehouse text-orange-600 text-xl"></i>
+                        </div>
+                        <span class="text-red-500 text-sm font-semibold">-5%</span>
+                    </div>
+                    <h3 class="text-gray-600 text-sm font-medium mb-1">Остаток на складе</h3>
+                    <p class="text-3xl font-bold text-gray-800">1,847</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-hand-holding text-purple-600 text-xl"></i>
+                        </div>
+                        <span class="text-green-500 text-sm font-semibold">+24%</span>
+                    </div>
+                    <h3 class="text-gray-600 text-sm font-medium mb-1">Выдано за месяц</h3>
+                    <p class="text-3xl font-bold text-gray-800">342</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Последние выдачи</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-800">Иванов И.И.</p>
+                                    <p class="text-sm text-gray-500">Костюм рабочий</p>
+                                </div>
+                            </div>
+                            <span class="text-sm text-gray-500">15.01.2024</span>
+                        </div>
+                        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user text-green-600"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-800">Петрова М.С.</p>
+                                    <p class="text-sm text-gray-500">Ботинки защитные</p>
+                                </div>
+                            </div>
+                            <span class="text-sm text-gray-500">18.01.2024</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user text-purple-600"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-800">Сидоров П.А.</p>
+                                    <p class="text-sm text-gray-500">Перчатки х/б</p>
+                                </div>
+                            </div>
+                            <span class="text-sm text-gray-500">20.01.2024</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Низкие остатки</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+                            <div>
+                                <p class="font-semibold text-gray-800">Перчатки резиновые</p>
+                                <p class="text-sm text-gray-500">Размер: L</p>
+                            </div>
+                            <span class="px-3 py-1 bg-red-100 text-red-600 rounded-full text-sm font-semibold">8 шт</span>
+                        </div>
+                        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+                            <div>
+                                <p class="font-semibold text-gray-800">Каска защитная</p>
+                                <p class="text-sm text-gray-500">Цвет: Белый</p>
+                            </div>
+                            <span class="px-3 py-1 bg-orange-100 text-orange-600 rounded-full text-sm font-semibold">12 шт</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-semibold text-gray-800">Очки защитные</p>
+                                <p class="text-sm text-gray-500">Тип: Прозрачные</p>
+                            </div>
+                            <span class="px-3 py-1 bg-orange-100 text-orange-600 rounded-full text-sm font-semibold">15 шт</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="currentPage === 'employees'" class="p-4 sm:p-6 lg:p-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                <div class="mb-4 sm:mb-0">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Сотрудники</h2>
+                    <p class="text-gray-600 mt-2">Управление списком сотрудников</p>
+                </div>
+                <button @click="showAddModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center space-x-2">
+                    <i class="fas fa-plus"></i>
+                    <span>Добавить сотрудника</span>
+                </button>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-4 border-b border-gray-100">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-3 sm:space-y-0">
+                        <div class="flex-1">
+                            <input type="text" placeholder="Поиск по имени, должности..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <select class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option>Все подразделения</option>
+                            <option>Производство</option>
+                            <option>Склад</option>
+                            <option>Администрация</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">ФИО</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Подразделение</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Должность</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Служба</th>
+                                <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <template x-for="employee in employees" :key="employee.id">
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <i class="fas fa-user text-blue-600"></i>
+                                            </div>
+                                            <span class="font-semibold text-gray-800" x-text="employee.name"></span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-gray-600" x-text="employee.department"></td>
+                                    <td class="px-6 py-4 text-gray-600" x-text="employee.position"></td>
+                                    <td class="px-6 py-4 text-gray-600" x-text="employee.service"></td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button @click="showEditModal = true" class="text-blue-600 hover:text-blue-800 mr-3">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button @click="showDeleteModal = true" class="text-red-600 hover:text-red-800">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="currentPage === 'departments'" class="p-4 sm:p-6 lg:p-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                <div class="mb-4 sm:mb-0">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Подразделения</h2>
+                    <p class="text-gray-600 mt-2">Управление подразделениями компании</p>
+                </div>
+                <button @click="showAddModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center space-x-2">
+                    <i class="fas fa-plus"></i>
+                    <span>Добавить подразделение</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-industry text-blue-600 text-xl"></i>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Производство</h3>
+                    <p class="text-gray-600 text-sm mb-4">Основное производственное подразделение</p>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500">Сотрудников:</span>
+                        <span class="font-semibold text-gray-800">156</span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-warehouse text-green-600 text-xl"></i>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Склад</h3>
+                    <p class="text-gray-600 text-sm mb-4">Складское хозяйство и логистика</p>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500">Сотрудников:</span>
+                        <span class="font-semibold text-gray-800">42</span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-building text-purple-600 text-xl"></i>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Администрация</h3>
+                    <p class="text-gray-600 text-sm mb-4">Административно-управленческий персонал</p>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500">Сотрудников:</span>
+                        <span class="font-semibold text-gray-800">50</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="currentPage === 'services'" class="p-4 sm:p-6 lg:p-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                <div class="mb-4 sm:mb-0">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Службы</h2>
+                    <p class="text-gray-600 mt-2">Управление службами предприятия</p>
+                </div>
+                <button @click="showAddModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center space-x-2">
+                    <i class="fas fa-plus"></i>
+                    <span>Добавить службу</span>
+                </button>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Название службы</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Подразделение</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Руководитель</th>
+                                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">Сотрудников</th>
+                                <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-cogs text-blue-600"></i>
+                                        </div>
+                                        <span class="font-semibold text-gray-800">Механический цех</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-gray-600">Производство</td>
+                                <td class="px-6 py-4 text-gray-600">Смирнов А.В.</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold">68</span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <button class="text-blue-600 hover:text-blue-800 mr-3">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-800">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-boxes text-green-600"></i>
+                                        </div>
+                                        <span class="font-semibold text-gray-800">Складское хозяйство</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-gray-600">Склад</td>
+                                <td class="px-6 py-4 text-gray-600">Кузнецова О.П.</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-3 py-1 bg-green-100 text-green-600 rounded-full text-sm font-semibold">42</span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <button class="text-blue-600 hover:text-blue-800 mr-3">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-800">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-users-cog text-purple-600"></i>
+                                        </div>
+                                        <span class="font-semibold text-gray-800">Отдел кадров</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-gray-600">Администрация</td>
+                                <td class="px-6 py-4 text-gray-600">Волкова Е.И.</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-3 py-1 bg-purple-100 text-purple-600 rounded-full text-sm font-semibold">8</span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <button class="text-blue-600 hover:text-blue-800 mr-3">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-800">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="currentPage === 'positions'" class="p-4 sm:p-6 lg:p-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                <div class="mb-4 sm:mb-0">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Должности</h2>
+                    <p class="text-gray-600 mt-2">Справочник должностей</p>
+                </div>
+                <button @click="showAddModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center space-x-2">
+                    <i class="fas fa-plus"></i>
+                    <span>Добавить должность</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-wrench text-blue-600 text-xl"></i>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Слесарь</h3>
+                    <p class="text-gray-600 text-sm mb-4">Механический цех</p>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Разряд:</span>
+                            <span class="font-semibold text-gray-800">4-6</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Сотрудников:</span>
+                            <span class="font-semibold text-gray-800">34</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-cog text-green-600 text-xl"></i>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Токарь</h3>
+                    <p class="text-gray-600 text-sm mb-4">Механический цех</p>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Разряд:</span>
+                            <span class="font-semibold text-gray-800">3-5</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Сотрудников:</span>
+                            <span class="font-semibold text-gray-800">28</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-box text-orange-600 text-xl"></i>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Кладовщик</h3>
+                    <p class="text-gray-600 text-sm mb-4">Складское хозяйство</p>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Разряд:</span>
+                            <span class="font-semibold text-gray-800">-</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Сотрудников:</span>
+                            <span class="font-semibold text-gray-800">12</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-user-tie text-purple-600 text-xl"></i>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Инженер</h3>
+                    <p class="text-gray-600 text-sm mb-4">Администрация</p>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Категория:</span>
+                            <span class="font-semibold text-gray-800">1-2</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Сотрудников:</span>
+                            <span class="font-semibold text-gray-800">22</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-hard-hat text-red-600 text-xl"></i>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Мастер участка</h3>
+                    <p class="text-gray-600 text-sm mb-4">Производство</p>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Разряд:</span>
+                            <span class="font-semibold text-gray-800">-</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Сотрудников:</span>
+                            <span class="font-semibold text-gray-800">15</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-clipboard-list text-indigo-600 text-xl"></i>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Контролер ОТК</h3>
+                    <p class="text-gray-600 text-sm mb-4">Производство</p>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Разряд:</span>
+                            <span class="font-semibold text-gray-800">3-4</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Сотрудников:</span>
+                            <span class="font-semibold text-gray-800">18</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="currentPage === 'clothing'" class="p-4 sm:p-6 lg:p-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                <div class="mb-4 sm:mb-0">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Каталог спецодежды</h2>
+                    <p class="text-gray-600 mt-2">Управление номенклатурой спецодежды</p>
+                </div>
+                <button @click="showAddModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center space-x-2">
+                    <i class="fas fa-plus"></i>
+                    <span>Добавить позицию</span>
+                </button>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+                <div class="p-4 border-b border-gray-100">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-3 sm:space-y-0">
+                        <div class="flex-1">
+                            <input type="text" placeholder="Поиск по названию..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <select class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option>Все категории</option>
+                            <option>Одежда</option>
+                            <option>Обувь</option>
+                            <option>СИЗ рук</option>
+                            <option>СИЗ головы</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Наименование</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Категория</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Размер</th>
+                                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">Остаток</th>
+                                <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <template x-for="item in clothing" :key="item.id">
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                                <i class="fas fa-tshirt text-blue-600"></i>
+                                            </div>
+                                            <span class="font-semibold text-gray-800" x-text="item.name"></span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-gray-600" x-text="item.category"></td>
+                                    <td class="px-6 py-4 text-gray-600" x-text="item.size"></td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="px-3 py-1 rounded-full text-sm font-semibold" :class="item.stock > 50 ? 'bg-green-100 text-green-600' : item.stock > 20 ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'" x-text="item.stock + ' шт'"></span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-blue-600 hover:text-blue-800 mr-3">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="text-red-600 hover:text-red-800">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="currentPage === 'stock'" class="p-4 sm:p-6 lg:p-8">
+            <div class="mb-6">
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Остатки на складе</h2>
+                <p class="text-gray-600 mt-2">Текущее состояние складских запасов</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-gray-600 text-sm font-medium mb-1">В наличии</h3>
+                    <p class="text-3xl font-bold text-gray-800">1,847</p>
+                    <p class="text-sm text-green-600 mt-2">Достаточный запас</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle text-orange-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-gray-600 text-sm font-medium mb-1">Низкий остаток</h3>
+                    <p class="text-3xl font-bold text-gray-800">23</p>
+                    <p class="text-sm text-orange-600 mt-2">Требуется закупка</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-times-circle text-red-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-gray-600 text-sm font-medium mb-1">Отсутствует</h3>
+                    <p class="text-3xl font-bold text-gray-800">5</p>
+                    <p class="text-sm text-red-600 mt-2">Срочная закупка</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-boxes text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-gray-600 text-sm font-medium mb-1">Всего позиций</h3>
+                    <p class="text-3xl font-bold text-gray-800">156</p>
+                    <p class="text-sm text-blue-600 mt-2">В каталоге</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-4 border-b border-gray-100">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-3 sm:space-y-0">
+                        <div class="flex-1">
+                            <input type="text" placeholder="Поиск по названию..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <select class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option>Все категории</option>
+                            <option>Одежда</option>
+                            <option>Обувь</option>
+                            <option>СИЗ</option>
+                        </select>
+                        <select class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option>Все остатки</option>
+                            <option>Достаточно</option>
+                            <option>Низкий остаток</option>
+                            <option>Отсутствует</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Наименование</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Категория</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Размер</th>
+                                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">Остаток</th>
+                                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">Мин. остаток</th>
+                                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-tshirt text-blue-600"></i>
+                                        </div>
+                                        <span class="font-semibold text-gray-800">Костюм рабочий</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-gray-600">Одежда</td>
+                                <td class="px-6 py-4 text-gray-600">52-54</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="text-lg font-bold text-gray-800">45</span>
+                                </td>
+                                <td class="px-6 py-4 text-center text-gray-600">20</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-3 py-1 bg-green-100 text-green-600 rounded-full text-sm font-semibold">В наличии</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-shoe-prints text-green-600"></i>
+                                        </div>
+                                        <span class="font-semibold text-gray-800">Ботинки защитные</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-gray-600">Обувь</td>
+                                <td class="px-6 py-4 text-gray-600">42</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="text-lg font-bold text-gray-800">28</span>
+                                </td>
+                                <td class="px-6 py-4 text-center text-gray-600">15</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-3 py-1 bg-green-100 text-green-600 rounded-full text-sm font-semibold">В наличии</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-hand-paper text-orange-600"></i>
+                                        </div>
+                                        <span class="font-semibold text-gray-800">Перчатки резиновые</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-gray-600">СИЗ рук</td>
+                                <td class="px-6 py-4 text-gray-600">L</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="text-lg font-bold text-gray-800">8</span>
+                                </td>
+                                <td class="px-6 py-4 text-center text-gray-600">20</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-3 py-1 bg-red-100 text-red-600 rounded-full text-sm font-semibold">Низкий</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-hard-hat text-purple-600"></i>
+                                        </div>
+                                        <span class="font-semibold text-gray-800">Каска защитная</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-gray-600">СИЗ головы</td>
+                                <td class="px-6 py-4 text-gray-600">Универсальный</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="text-lg font-bold text-gray-800">12</span>
+                                </td>
+                                <td class="px-6 py-4 text-center text-gray-600">25</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-3 py-1 bg-orange-100 text-orange-600 rounded-full text-sm font-semibold">Низкий</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-hand-sparkles text-blue-600"></i>
+                                        </div>
+                                        <span class="font-semibold text-gray-800">Перчатки х/б</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-gray-600">СИЗ рук</td>
+                                <td class="px-6 py-4 text-gray-600">Универсальный</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="text-lg font-bold text-gray-800">150</span>
+                                </td>
+                                <td class="px-6 py-4 text-center text-gray-600">50</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-3 py-1 bg-green-100 text-green-600 rounded-full text-sm font-semibold">В наличии</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="currentPage === 'issue'" class="p-4 sm:p-6 lg:p-8">
+            <div class="mb-6">
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Выдача спецодежды</h2>
+                <p class="text-gray-600 mt-2">Оформление выдачи спецодежды сотруднику</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sm:p-8">
+                <form class="space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Сотрудник</label>
+                            <select class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option>Выберите сотрудника</option>
+                                <option>Иванов Иван Иванович</option>
+                                <option>Петрова Мария Сергеевна</option>
+                                <option>Сидоров Петр Алексеевич</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Дата выдачи</label>
+                            <input type="date" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-200 pt-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-gray-800">Позиции для выдачи</h3>
+                            <button type="button" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center space-x-2">
+                                <i class="fas fa-plus"></i>
+                                <span>Добавить позицию</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-600 mb-2">Наименование</label>
+                                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <option>Костюм рабочий</option>
+                                            <option>Ботинки защитные</option>
+                                            <option>Перчатки х/б</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-600 mb-2">Размер</label>
+                                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <option>52-54</option>
+                                            <option>48-50</option>
+                                            <option>56-58</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-600 mb-2">Количество</label>
+                                        <input type="number" value="1" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button type="button" class="w-full px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition font-semibold text-sm">
+                                            <i class="fas fa-trash mr-2"></i>Удалить
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-600 mb-2">Наименование</label>
+                                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <option>Ботинки защитные</option>
+                                            <option>Костюм рабочий</option>
+                                            <option>Перчатки х/б</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-600 mb-2">Размер</label>
+                                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <option>42</option>
+                                            <option>40</option>
+                                            <option>44</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-600 mb-2">Количество</label>
+                                        <input type="number" value="1" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button type="button" class="w-full px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition font-semibold text-sm">
+                                            <i class="fas fa-trash mr-2"></i>Удалить
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Примечание</label>
+                        <textarea rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Дополнительная информация о выдаче..."></textarea>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
+                        <button type="button" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold">
+                            Отмена
+                        </button>
+                        <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold flex items-center justify-center space-x-2">
+                            <i class="fas fa-check"></i>
+                            <span>Оформить выдачу</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div x-show="currentPage === 'report'" class="p-4 sm:p-6 lg:p-8">
+            <div class="mb-6">
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">Отчет по выдаче спецодежды</h2>
+                <p class="text-gray-600 mt-2">Сводная таблица выданной спецодежды по сотрудникам</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-4 border-b border-gray-100">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-3 sm:space-y-0">
+                        <div class="flex-1">
+                            <input type="text" placeholder="Поиск по сотруднику или одежде..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div class="flex space-x-2">
+                            <input type="date" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                            <input type="date" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                        </div>
+                        <button class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold flex items-center space-x-2">
+                            <i class="fas fa-file-excel"></i>
+                            <span>Экспорт</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Сотрудник</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Наименование</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Размер</th>
+                                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">Количество</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Дата выдачи</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Срок носки</th>
+                                <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase">Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <template x-for="item in issued" :key="item.id">
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <i class="fas fa-user text-blue-600"></i>
+                                            </div>
+                                            <div>
+                                                <p class="font-semibold text-gray-800" x-text="item.employee"></p>
+                                                <p class="text-xs text-gray-500">Производство</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center space-x-2">
+                                            <i class="fas fa-tshirt text-gray-400"></i>
+                                            <span class="text-gray-800" x-text="item.item"></span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-gray-600" x-text="item.size"></td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold" x-text="item.quantity + ' шт'"></span>
+                                    </td>
+                                    <td class="px-6 py-4 text-gray-600" x-text="item.date"></td>
+                                    <td class="px-6 py-4 text-gray-600">12 месяцев</td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="px-3 py-1 bg-green-100 text-green-600 rounded-full text-sm font-semibold">Выдано</span>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                    <p class="text-sm text-gray-600">Показано 1-3 из 3 записей</p>
+                    <div class="flex space-x-2">
+                        <button class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm font-semibold text-gray-700">
+                            <i class="fas fa-chevron-left mr-2"></i>Назад
+                        </button>
+                        <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-semibold">
+                            Вперед<i class="fas fa-chevron-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div x-show="showAddModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div @click.away="showAddModal = false" class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto">
+        <div class="p-6 border-b border-gray-100">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800">Добавить запись</h3>
+                <button @click="showAddModal = false" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        <div class="p-6">
+            <form class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Название</label>
+                    <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Описание</label>
+                    <textarea rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" @click="showAddModal = false" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold">
+                        Отмена
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                        Добавить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div x-show="showEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div @click.away="showEditModal = false" class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto">
+        <div class="p-6 border-b border-gray-100">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-800">Редактировать запись</h3>
+                <button @click="showEditModal = false" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        <div class="p-6">
+            <form class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Название</label>
+                    <input type="text" value="Текущее значение" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Описание</label>
+                    <textarea rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">Текущее описание</textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" @click="showEditModal = false" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold">
+                        Отмена
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                        Сохранить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div x-show="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div @click.away="showDeleteModal = false" class="bg-white rounded-xl shadow-xl max-w-md w-full">
+        <div class="p-6">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 text-center mb-2">Подтвердите удаление</h3>
+            <p class="text-gray-600 text-center mb-6">Вы уверены, что хотите удалить эту запись? Это действие нельзя отменить.</p>
+            <div class="flex space-x-3">
+                <button @click="showDeleteModal = false" class="flex-1 px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold">
+                    Отмена
+                </button>
+                <button @click="showDeleteModal = false" class="flex-1 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold">
+                    Удалить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
