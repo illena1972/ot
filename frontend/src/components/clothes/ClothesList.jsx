@@ -7,8 +7,43 @@ export default function ClothesList() {
   const [clothes, setClothes] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [clothesToEdit, setClothesToEdit] = useState(null);
-  //const [itemToDelete, setItemToDelete] = useState(null);
+  const [clothesToDelete, setClothesToDelete] = useState(null);
 
+  const CLOTHES_TYPE_UI = {
+  top: {
+    bg: "bg-blue-100",
+    text: "text-blue-600",
+    icon: "fas fa-tshirt",
+    label: "Верхняя одежда",
+  },
+  shoes: {
+    bg: "bg-green-100",
+    text: "text-green-600",
+    icon: "fas fa-shoe-prints",
+    label: "Обувь",
+  },
+  other: {
+    bg: "bg-purple-100",
+    text: "text-purple-600",
+    icon: "fas fa-box",
+    label: "Безразмерная",
+  },
+};
+
+
+
+
+    // функция удаления
+    const deleteСlothes = async () => {
+      try {
+        await api.delete(`clothes/${clothesToDelete.id}/`);
+        setClothesToDelete(null);
+        loadClothes();
+      } catch (err) {
+        console.error(err);
+        alert("Ошибка при удалении");
+      }
+    };
 
   useEffect(() => {
     api.get("clothes/")
@@ -25,6 +60,8 @@ export default function ClothesList() {
   useEffect(() => {
     loadClothes();
   }, []);
+
+
 
 
   return (
@@ -85,7 +122,7 @@ export default function ClothesList() {
                     <button onClick={() => setClothesToEdit(cl)} className="text-blue-600 hover:text-blue-800 mr-1">
                          <i className="fas fa-edit"></i>
                     </button>
-                    <button  className="text-red-600 hover:text-red-800">
+                    <button onClick={() => setClothesToDelete(cl)} className="text-red-600 hover:text-red-800">
                          <i className="fas fa-trash"></i>
                     </button>
 
@@ -118,6 +155,41 @@ export default function ClothesList() {
                 />
               </ClothesModal>
             )}
+
+
+
+             {clothesToDelete && (
+              <ClothesModal onClose={() => setClothesToDelete(null)}>
+                <h2 className="text-xl font-bold mb-4">
+                  Удалить одежду
+                </h2>
+
+                <p className="text-gray-600 mb-6">
+                  Вы уверены, что хотите удалить одежду{" "}
+                  <strong>
+                    {clothesToDelete.name}
+                  </strong>
+                  ?
+                </p>
+
+                <div className="flex justify-end space-x-4">
+                  <button onClick={() => setСlothesToDelete(null)}
+                    className="px-4 py-2 rounded-lg border"
+                  >
+                    Отмена
+                  </button>
+
+                  <button onClick={deleteСlothes}
+                    className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                  >
+                    Удалить
+                  </button>
+                </div>
+              </ClothesModal>
+            )}
+
+
+
 
         </div>
       </div>

@@ -1,0 +1,46 @@
+
+
+            {serviceToEdit && (
+              <ServiceModal onClose={() => setServiceToEdit(null)}>
+                <ServiceForm
+                  service={serviceToEdit}
+                  onSuccess={() => {
+                    setServiceToEdit(null);
+                    loadServices();
+                  }}
+                />
+              </ServiceModal>
+            )}
+
+
+            {serviceToDelete && (
+              <ServiceModal onClose={() => setServiceToDelete(null)}>
+                <h2 className="text-xl font-bold mb-4">
+                  Удалить службу
+                </h2>
+
+                <p className="text-gray-600 mb-6">
+                  Вы уверены, что хотите удалить службу{" "}
+                  <strong>
+                    {serviceToDelete.name}
+                  </strong>
+                  ?
+                </p>
+
+                <div className="flex justify-end space-x-4">
+                  <button
+                    onClick={() => setServiceToDelete(null)}
+                    className="px-4 py-2 rounded-lg border"
+                  >
+                    Отмена
+                  </button>
+
+                  <button
+                    onClick={deleteService}
+                    className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                  >
+                    Удалить
+                  </button>
+                </div>
+              </ServiceModal>
+            )}
