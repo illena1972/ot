@@ -100,12 +100,14 @@ export default function ClothesList() {
             </thead>
 
             <tbody className="divide-y">
-              {clothes.map(cl => (
+              {clothes.map(cl => {
+                const ui = CLOTHES_TYPE_UI[cl.type] || {};
+                return (
                 <tr key={cl.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-semibold">
                     <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                             <i className="fas fa-tshirt text-blue-600"></i>
+                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${ui.bg}`}>
+                          <i className={`${ui.icon} ${ui.text}`}></i>
                         </div>
                     <span className="text-gray-600">{cl.name}</span>
                     </div>
@@ -114,7 +116,11 @@ export default function ClothesList() {
                   <td className="px-6 py-4 ">
                     <div className="flex items-center space-x-3">
 
-                    <span className="text-gray-600">{cl.type_label}</span>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${ui.bg} ${ui.text}`}
+                    >
+                      {cl.type_label}
+                    </span>
                     </div>
                   </td>
 
@@ -128,7 +134,9 @@ export default function ClothesList() {
 
                   </td>
                 </tr>
-              ))}
+                );
+                })}
+
             </tbody>
 
           </table>
