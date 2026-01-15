@@ -1,6 +1,7 @@
 # serializers.py
 from rest_framework import serializers
-from .models import Department, Service, Position, Employee, ClothesItem
+from .models import Department, Service, Position, Employee, ClothesItem, ClothesStockBatch, ClothesIssue
+
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -61,3 +62,33 @@ class ClothesItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = ClothesItem
         fields = ["id", "name", "type", "type_label"]
+
+# поступление на склад
+class ClothesStockBatchSerializer(serializers.ModelSerializer):
+    item_name = serializers.CharField(source="item.name", read_only=True)
+    item_type = serializers.CharField(source="item.type", read_only=True)
+
+    class Meta:
+        model = ClothesStockBatch
+        fields = [
+            "id",
+            "item",
+            "item_name",
+            "item_type",
+            "size",
+            "quantity",
+            "date_income",
+            "note",
+        ]
+
+# выдача со склада
+
+class ClothesIssueSerializer(serializers.ModelSerializer):
+    employee_name = serializers.CharField(
+        source="employee.__str__", read_only=True
+    )
+    item_name = serializers.CharField(source="item.name", read_only=True)
+
+    class Meta:
+        model = ClothesIssue
+        fields = "__all__"
