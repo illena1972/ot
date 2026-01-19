@@ -26,8 +26,16 @@ function StockForm({ stock, onSuccess }) {
 
   // 🔹 при выборе одежды узнаём тип
   useEffect(() => {
-    const found = items.find(i => i.id === Number(form.item));
-    setSelectedItem(found || null);
+  const found = items.find(i => i.id === Number(form.item));
+  setSelectedItem(found || null);
+
+  // 👇 ВАЖНО
+  if (found?.type === "other") {
+    setForm(prev => ({
+      ...prev,
+      size: null,
+    }));
+  }
   }, [form.item, items]);
 
   useEffect(() => {
@@ -149,7 +157,7 @@ function StockForm({ stock, onSuccess }) {
           <input
             type="number"
             name="size"
-            value={form.size}
+            value={form.size ?? ""}
             onChange={handleChange}
             className="w-full border rounded-lg px-3 py-2"
           />

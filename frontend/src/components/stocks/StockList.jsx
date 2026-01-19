@@ -7,6 +7,8 @@ export default function StockList() {
   const [stocks, setStocks] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingStock, setEditingStock] = useState(null);
+  const [stockToDelete, setStockToDelete] = useState(null);
+
 
   const CLOTHES_TYPE_UI = {
   top: {
@@ -37,6 +39,17 @@ export default function StockList() {
 
   const handleEdit = (stock) => {
   setEditingStock(stock);
+  };
+
+  const handleDeleteStock = async () => {
+  try {
+    await api.delete(`stocks/${stockToDelete.id}/`);
+    setStockToDelete(null);
+    loadStocks(); // обновляем таблицу
+  } catch (err) {
+    console.error(err);
+    alert("Ошибка при удалении партии");
+  }
   };
 
   useEffect(() => {
@@ -181,6 +194,41 @@ export default function StockList() {
                 />
               </StockModal>
             )}
+
+
+            {stockToDelete && (
+              <StockModal onClose={() => setStockToDelete(null)}>
+                <h2 className="text-xl font-bold mb-4">
+                  Удалить партию
+                </h2>
+
+                <p className="text-gray-600 mb-6">
+                  Вы уверены, что хотите удалить партию одежды{" "}
+                  <strong>{stockToDelete.item_name}</strong>
+                  {stockToDelete.size && (
+                    <> (размер {stockToDelete.size})</>
+                  )}
+                  ?
+                </p>
+
+                <div className="flex justify-end space-x-4">
+                  <button
+                    onClick={() => setStockToDelete(null)}
+                    className="px-4 py-2 rounded-lg border"
+                  >
+                    Отмена
+                  </button>
+
+                  <button
+                    onClick={handleDeleteStock}
+                    className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                  >
+                    Удалить
+                  </button>
+                </div>
+              </StockModal>
+            )}
+
 
 
         </div>
