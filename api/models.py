@@ -94,9 +94,8 @@ class ClothesStockBatch(models.Model):
         verbose_name="Вид одежды"
     )
 
-    size = models.CharField(
+    size = models.PositiveIntegerField(
         "Размер",
-        max_length=20,
         blank=True,
         null=True,
         help_text="Размер обязателен для верхней одежды и обуви"
@@ -109,19 +108,18 @@ class ClothesStockBatch(models.Model):
     note = models.TextField("Примечание", blank=True, null=True)
 
     def clean(self):
-        # Одежда тип TOP или SHOES — размер обязателен
-        if self.item.type in (ClothesType.TOP, ClothesType.SHOES) and not self.size:
+        if self.item.type in (ClothesType.TOP, ClothesType.SHOES) and self.size is None:
             raise ValidationError("Для размерной одежды размер обязателен.")
 
-        # Одежда тип OTHER — размер должен быть пустым
-        if self.item.type == ClothesType.OTHER and self.size:
+        if self.item.type == ClothesType.OTHER and self.size is not None:
             raise ValidationError("Безразмерная одежда не должна иметь размер.")
 
     def __str__(self):
-        s = f"{self.item.name}"
-        if self.size:
+        s = self.item.name
+        if self.size is not None:
             s += f" (размер {self.size})"
         return s
+
 
 
 

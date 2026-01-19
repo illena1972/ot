@@ -1,7 +1,7 @@
 # serializers.py
 from rest_framework import serializers
-from .models import Department, Service, Position, Employee, ClothesItem, ClothesStockBatch, ClothesIssue
-
+from django.utils import timezone
+from .models import Department, Service, Position, Employee, ClothesItem, ClothesStockBatch, ClothesIssue, ClothesType
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -68,19 +68,44 @@ class ClothesStockBatchSerializer(serializers.ModelSerializer):
     item_name = serializers.CharField(source="item.name", read_only=True)
     item_type = serializers.CharField(source="item.type", read_only=True)
 
+    date_income = serializers.DateField(
+        required=False,
+        allow_null=True
+    )
+
     class Meta:
         model = ClothesStockBatch
-        fields = [
-            "id",
-            "item",
-            "item_name",
-            "item_type",
-            "size",
-            "quantity",
-            "date_income",
-            "note",
-        ]
+        fields = "__all__"
 
+    def to_internal_value(self, data):
+        data = data.copy()
+
+        # 👇 КЛЮЧЕВОЕ МЕСТО
+        if data.get("date_income") == "":
+            data["date_income"] = None
+
+        return super().to_internal_value(data)
+
+    def validate_date_income(self, value):
+        if value is None:
+            return timezone.now().date()
+        return value
+
+    def validate(self, data):
+        item = data.get("item")
+        size = data.get("size")
+
+        if item.type in (ClothesType.TOP, ClothesType.SHOES) and not size:
+            raise serializers.ValidationError({
+                "size": "Укажите размер одежды!"
+            })
+
+        if item.type == ClothesType.OTHER and size:
+            raise serializers.ValidationError({
+                "size": "Для безразмерной одежды размер указывать нельзя"
+            })
+
+        return data
 # выдача со склада
 
 class ClothesIssueSerializer(serializers.ModelSerializer):

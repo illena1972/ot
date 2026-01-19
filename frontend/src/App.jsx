@@ -10,18 +10,18 @@ import DepartmentList from "./components/departments/DepartmentList";
 import ServiceList from "./components/services/ServiceList";
 import PositionList from "./components/positions/PositionList";
 import ClothesList from "./components/clothes/ClothesList";
+import StockList from "./components/stocks/StockList";
 
 function App() {
   return (
     <Layout>
       {(page) => {
-        //if (page === "employees") return <EmployeeForm />;
         if (page === "employees") return <EmployeeList />;
-        //if (page === "departments") return <DepartmentForm />;
         if (page === "departments") return <DepartmentList />;
         if (page === "services") return <ServiceList />;
         if (page === "positions") return <PositionList />;
         if (page === "clothes") return <ClothesList />;
+        if (page === "stocks") return <StockList />;
 
       }}
     </Layout>
