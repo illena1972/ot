@@ -1,13 +1,14 @@
 # views.py
 from django.db.models import Count
 from rest_framework.viewsets import ModelViewSet
-from .models import Department, Service, Position, Employee, ClothesItem
+from .models import Department, Service, Position, Employee, ClothesItem, ClothesStockBatch, ClothesIssue
 from .serializers import (
     DepartmentSerializer,
     ServiceSerializer,
     PositionSerializer,
     EmployeeSerializer,
     ClothesItemSerializer,
+    ClothesStockBatchSerializer, ClothesIssueSerializer,
 )
 
 from django_filters.rest_framework import DjangoFilterBackend
@@ -51,3 +52,15 @@ class EmployeeViewSet(ModelViewSet):
 class ClothesItemViewSet(ModelViewSet):
     queryset = ClothesItem.objects.order_by("name")
     serializer_class = ClothesItemSerializer
+
+class ClothesStockBatchViewSet(ModelViewSet):
+    queryset = ClothesStockBatch.objects.select_related("item").order_by("-date_income")
+    serializer_class = ClothesStockBatchSerializer
+
+
+
+class ClothesIssueViewSet(ModelViewSet):
+    queryset = ClothesIssue.objects.select_related(
+        "employee", "item", "stock_batch"
+    ).order_by("-date_received")
+    serializer_class = ClothesIssueSerializer

@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from datetime import timedelta
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
 
 class Department(models.Model):
@@ -93,9 +94,8 @@ class ClothesStockBatch(models.Model):
         verbose_name="Вид одежды"
     )
 
-    size = models.CharField(
+    size = models.PositiveIntegerField(
         "Размер",
-        max_length=20,
         blank=True,
         null=True,
         help_text="Размер обязателен для верхней одежды и обуви"
@@ -108,17 +108,15 @@ class ClothesStockBatch(models.Model):
     note = models.TextField("Примечание", blank=True, null=True)
 
     def clean(self):
-        # Одежда тип TOP или SHOES — размер обязателен
-        if self.item.type in (ClothesType.TOP, ClothesType.SHOES) and not self.size:
+        if self.item.type in (ClothesType.TOP, ClothesType.SHOES) and self.size is None:
             raise ValidationError("Для размерной одежды размер обязателен.")
 
-        # Одежда тип OTHER — размер должен быть пустым
-        if self.item.type == ClothesType.OTHER and self.size:
+        if self.item.type == ClothesType.OTHER and self.size is not None:
             raise ValidationError("Безразмерная одежда не должна иметь размер.")
 
     def __str__(self):
-        s = f"{self.item.name}"
-        if self.size:
+        s = self.item.name
+        if self.size is not None:
             s += f" (размер {self.size})"
         return s
 
@@ -126,37 +124,52 @@ class ClothesStockBatch(models.Model):
 
 
 
-
-
-
-
-
-
-
-
-
-
 class ClothesIssue(models.Model):
     """Выдача спецодежды сотруднику"""
-    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, verbose_name="Сотрудник")
-    item = models.ForeignKey(ClothesItem, on_delete=models.CASCADE, verbose_name="Экипировка")
+
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        verbose_name="Сотрудник"
+    )
+
+    item = models.ForeignKey(
+        ClothesItem,
+        on_delete=models.CASCADE,
+        verbose_name="Экипировка"
+    )
 
     quantity = models.PositiveIntegerField("Количество", default=1)
 
-    size = models.CharField(
+    size = models.PositiveIntegerField(
         "Размер",
-        max_length=20,
         blank=True,
         null=True,
         help_text="Для верхней одежды и обуви"
     )
 
-    operation_life_months = models.PositiveIntegerField("Срок эксплуатации (в месяцах)", default=12)
+    operation_life_months = models.PositiveIntegerField(
+        "Срок эксплуатации (в месяцах)",
+        default=12
+    )
 
-    order_point = models.CharField("Пункт приказа", max_length=255, blank=True, null=True)
+    order_point = models.CharField(
+        "Пункт приказа",
+        max_length=255,
+        blank=True,
+        null=True
+    )
 
-    date_received = models.DateField("Дата получения", default=timezone.now)
-    date_expire = models.DateField("Дата окончания срока носки", blank=True, null=True)
+    date_received = models.DateField(
+        "Дата получения",
+        default=timezone.now
+    )
+
+    date_expire = models.DateField(
+        "Дата окончания срока носки",
+        blank=True,
+        null=True
+    )
 
     stock_batch = models.ForeignKey(
         ClothesStockBatch,
@@ -168,65 +181,81 @@ class ClothesIssue(models.Model):
 
     note = models.TextField("Примечание", blank=True, null=True)
 
+    # ----------------------------
+    # ВАЛИДАЦИЯ
+    # ----------------------------
     def clean(self):
         if self.item.type in (ClothesType.TOP, ClothesType.SHOES) and not self.size:
             raise ValidationError("Для этого вида одежды необходимо указать размер.")
 
         if self.item.type == ClothesType.OTHER and self.size:
-            raise ValidationError("Для безразмерной одежды не указывают размер.")
+            raise ValidationError("Для безразмерной одежды размер не указывается.")
 
+    # ----------------------------
+    # СОХРАНЕНИЕ
+    # ----------------------------
     def save(self, *args, **kwargs):
-        # 1. Если размер не указан — подставляем по сотруднику
-        if not self.size:
-            if self.item.type == ClothesType.TOP:
-                self.size = self.employee.clothes_size
+        is_new = self.pk is None
 
-            elif self.item.type == ClothesType.SHOES:
-                self.size = self.employee.shoe_size
+        with transaction.atomic():
 
-            # Для OTHER размер оставляем пустым
+            # 1️⃣ Размер
+            if not self.size:
+                if self.item.type == ClothesType.TOP:
+                    self.size = self.employee.clothes_size
+                elif self.item.type == ClothesType.SHOES:
+                    self.size = self.employee.shoe_size
 
-        # 2. Проверяем данные
-        self.clean()
+            # 2️⃣ Валидация
+            self.clean()
 
-        # Для работы с остатками
+            # 3️⃣ Предыдущее состояние (для редактирования)
+            previous = None
+            if not is_new:
+                previous = ClothesIssue.objects.select_for_update().get(pk=self.pk)
 
-        # 👇 Если партия не указана — автоматически ищем подходящую
-        if not self.stock_batch:
-            self.stock_batch = ClothesStockBatch.objects.filter(
-                item=self.item,
-                size=self.size
-            ).order_by('date_income').first()  # FIFO (выдаём самые старые партии)
-
+            # 4️⃣ Подбор партии
             if not self.stock_batch:
-                raise ValidationError("На складе нет подходящей одежды для выдачи.")
+                self.stock_batch = ClothesStockBatch.objects.select_for_update().filter(
+                    item=self.item,
+                    size=self.size
+                ).order_by("date_income").first()
 
-        # 👇 Проверяем остаток в партии
-        if is_new:
-            if self.stock_batch.quantity < self.quantity:
-                raise ValidationError("Недостаточно одежды на складе.")
-        else:
-            # Если запись обновляется – нужно проверить разницу
-            previous = ClothesIssue.objects.get(pk=self.pk)
-            delta = self.quantity - previous.quantity
+                if not self.stock_batch:
+                    raise ValidationError("На складе нет подходящей одежды.")
 
-            if delta > 0 and self.stock_batch.quantity < delta:
-                raise ValidationError("Недостаточно одежды в выбранной партии.")
+            # 5️⃣ Проверка остатков
+            if is_new:
+                if self.stock_batch.quantity < self.quantity:
+                    raise ValidationError("Недостаточно одежды на складе.")
+                self.stock_batch.quantity -= self.quantity
+            else:
+                delta = self.quantity - previous.quantity
+                if delta > 0:
+                    if self.stock_batch.quantity < delta:
+                        raise ValidationError("Недостаточно одежды на складе.")
+                    self.stock_batch.quantity -= delta
 
-        # 👇 Вычитание из остатков (только при новой выдаче или увеличении количества)
-        if is_new:
-            self.stock_batch.quantity -= self.quantity
-        else:
-            delta = self.quantity - previous.quantity
-            self.stock_batch.quantity -= max(delta, 0)
+            self.stock_batch.save()
 
-        self.stock_batch.save()
+            # 6️⃣ Дата окончания носки
+            if self.date_received and self.operation_life_months and not self.date_expire:
+                self.date_expire = self.date_received + timedelta(
+                    days=30 * self.operation_life_months
+                )
 
-        # 3. Вычисляем дату окончания срока, если не задана
-        if self.date_received and self.operation_life_months and not self.date_expire:
-            self.date_expire = self.date_received + timedelta(days=30 * self.operation_life_months)
+            super().save(*args, **kwargs)
 
-        # 4. Сохраняем объект
-        super().save(*args, **kwargs)
+
+
+
+
+
+
+
+
+
+
+
 
 
