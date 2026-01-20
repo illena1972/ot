@@ -79,14 +79,14 @@ export default function DepartmentList() {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => setDepartmentToEdit(dep)}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="p-2 rounded-lg hover:bg-blue-50 text-blue-600"
                       >
                         <i className="fas fa-edit"></i>
                       </button>
 
                       <button
                         onClick={() => setDepartmentToDelete(dep)}
-                        className="text-red-600 hover:text-red-800"
+                        className="p-2 rounded-lg hover:bg-red-50 text-red-600"
                       >
                         <i className="fas fa-trash"></i>
                       </button>

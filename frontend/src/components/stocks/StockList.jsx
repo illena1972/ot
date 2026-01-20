@@ -9,9 +9,12 @@ export default function StockList() {
   const [editingStock, setEditingStock] = useState(null);
   const [stockToDelete, setStockToDelete] = useState(null);
 
-  // для разных вкладок
+  // для разных вкладок  "batches" | "summary"
   const [viewMode, setViewMode] = useState("batches");
-  // "batches" | "summary"
+  // all | top | shoes | other
+  const [typeFilter, setTypeFilter] = useState("all");
+
+
 
 
 
@@ -35,6 +38,14 @@ export default function StockList() {
     label: "Безразмерная",
   },
 };
+
+const TYPE_FILTERS = [
+  { value: "all", label: "Все" },
+  { value: "top", label: "Верхняя одежда" },
+  { value: "shoes", label: "Обувь" },
+  { value: "other", label: "Без размера" },
+];
+
 
   const loadStocks = () => {
     api.get("stocks/")
@@ -83,7 +94,22 @@ export default function StockList() {
       stockSummaryMap[key].quantity += stock.quantity;
     });
 
-    const stockSummary = Object.values(stockSummaryMap);
+    const stockSummary = Object.values(stockSummaryMap).sort((a, b) => {
+      if (a.item_name !== b.item_name) {
+        return a.item_name.localeCompare(b.item_name, "ru");
+      }
+      return (a.size ?? 0) - (b.size ?? 0);
+    });
+
+    const filteredStocks =
+    typeFilter === "all"
+    ? stocks
+    : stocks.filter(s => s.item_type === typeFilter);
+
+    const filteredStockSummary =
+    typeFilter === "all"
+    ? stockSummary
+    : stockSummary.filter(row => row.item_type === typeFilter);
 
     return (
   <div>
@@ -126,13 +152,51 @@ export default function StockList() {
       </button>
     </div>
 
+
+    <div className="flex flex-wrap gap-2 mb-4">
+          {/* Все */}
+          <button
+            onClick={() => setTypeFilter("all")}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition
+              ${
+                typeFilter === "all"
+                  ? "bg-gray-800 text-white"
+                  : "bg-white text-gray-600 hover:bg-gray-100"
+              }`}
+          >
+            <i className="fas fa-layer-group"></i>
+            Все
+          </button>
+
+          {Object.entries(CLOTHES_TYPE_UI).map(([key, ui]) => (
+            <button
+              key={key}
+              onClick={() => setTypeFilter(key)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition
+                ${
+                  typeFilter === key
+                    ? `${ui.bg} ${ui.text} border-transparent`
+                    : "bg-white text-gray-600 hover:bg-gray-100"
+                }`}
+            >
+              <i className={ui.icon}></i>
+              {ui.label}
+            </button>
+          ))}
+    </div>
+
+
+
+
+
+
     {/* Контейнер таблиц */}
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="overflow-x-auto">
 
         {/* ================= ПАРТИИ ================= */}
         {viewMode === "batches" && (
-          <table className="w-full">
+          <table className="min-w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase">
@@ -154,7 +218,7 @@ export default function StockList() {
             </thead>
 
             <tbody className="divide-y">
-              {stocks.map(stock => {
+              {filteredStocks.map(stock => {
                 const ui = CLOTHES_TYPE_UI[stock.item_type];
 
                 return (
@@ -174,9 +238,24 @@ export default function StockList() {
                       </div>
                     </td>
 
+
+
                     <td className="px-6 py-4">
-                      {stock.size ?? "—"}
+                      {stock.size ? (
+                        stock.size
+                      ) : stock.item_type === "other" ? (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 whitespace-nowrap">
+                          Без размера
+                        </span>
+
+                      ) : (
+                        "—"
+                      )}
                     </td>
+
+
+
+
 
                     <td className="px-6 py-4 text-right font-semibold">
                       {stock.quantity}
@@ -186,26 +265,30 @@ export default function StockList() {
                       {stock.date_income}
                     </td>
 
-                    <td className="px-6 py-4 text-right">
-                      <button
-                        className="text-blue-600 hover:text-blue-800 mr-3"
-                        onClick={() => handleEdit(stock)}
-                      >
-                        <i className="fas fa-edit"></i>
-                      </button>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-end items-center space-x-3">
+                        <button
+                          className="p-2 rounded-lg hover:bg-blue-50 text-blue-600"
+                          onClick={() => handleEdit(stock)}
+                          title="Редактировать"
+                        >
+                          <i className="fas fa-edit"></i>
+                        </button>
 
-                      <button
-                        className="text-red-600 hover:text-red-800"
-                        onClick={() => setStockToDelete(stock)}
-                      >
-                        <i className="fas fa-trash"></i>
-                      </button>
+                        <button
+                          className="p-2 rounded-lg hover:bg-red-50 text-red-600"
+                          onClick={() => setStockToDelete(stock)}
+                          title="Удалить"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
               })}
 
-              {stocks.length === 0 && (
+              {filteredStocks.length === 0 && (
                 <tr>
                   <td colSpan="5" className="text-center py-8 text-gray-500">
                     Нет данных
@@ -234,32 +317,49 @@ export default function StockList() {
             </thead>
 
             <tbody className="divide-y">
-              {stockSummary.map((row, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-semibold">
-                    {row.item_name}
-                  </td>
+              {filteredStockSummary.map((row, index) => {
+                const ui = CLOTHES_TYPE_UI[row.item_type];
 
-                  <td className="px-6 py-4">
-                    {row.size ?? "—"}
-                  </td>
+                return (
+                  <tr key={index} className="hover:bg-gray-50">
+                    {/* Наименование */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-3">
+                        <div
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center ${ui?.bg}`}
+                        >
+                          <i className={`${ui?.icon} ${ui?.text}`}></i>
+                        </div>
 
-                  <td className="px-6 py-4 text-right font-semibold">
-                    {row.quantity}
-                  </td>
-                </tr>
-              ))}
+                        <span className="font-semibold text-gray-800">
+                          {row.item_name}
+                        </span>
+                      </div>
+                    </td>
 
-              {stockSummary.length === 0 && (
-                <tr>
-                  <td colSpan="3" className="text-center py-8 text-gray-500">
-                    Нет данных
-                  </td>
-                </tr>
-              )}
+                    {/* Размер */}
+                    <td className="px-6 py-4">
+                      {row.size ? (
+                        row.size
+                      ) : (
+                        <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-gray-600">
+                          Без размера
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Количество */}
+                    <td className="px-6 py-4 text-right font-semibold">
+                      {row.quantity}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
+
           </table>
         )}
+
       </div>
     </div>
 
