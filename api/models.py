@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from dateutil.relativedelta import relativedelta
 from datetime import timedelta
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -122,6 +123,10 @@ class ClothesStockBatch(models.Model):
 
 
 
+from django.db import models
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+from datetime import timedelta
 
 
 class ClothesIssue(models.Model):
@@ -139,13 +144,16 @@ class ClothesIssue(models.Model):
         verbose_name="Экипировка"
     )
 
-    quantity = models.PositiveIntegerField("Количество", default=1)
+    quantity = models.PositiveIntegerField(
+        "Количество",
+        default=1
+    )
 
     size = models.PositiveIntegerField(
         "Размер",
         blank=True,
         null=True,
-        help_text="Для верхней одежды и обуви"
+        help_text="Обязателен для верхней одежды и обуви"
     )
 
     operation_life_months = models.PositiveIntegerField(
@@ -171,83 +179,46 @@ class ClothesIssue(models.Model):
         null=True
     )
 
-    stock_batch = models.ForeignKey(
-        ClothesStockBatch,
-        on_delete=models.PROTECT,
-        null=True,
+    note = models.TextField(
+        "Примечание",
         blank=True,
-        verbose_name="Партия со склада"
+        null=True
     )
 
-    note = models.TextField("Примечание", blank=True, null=True)
+    class Meta:
+        verbose_name = "Выдача одежды"
+        verbose_name_plural = "Выдачи одежды"
+        ordering = ["-date_received"]
 
     # ----------------------------
     # ВАЛИДАЦИЯ
     # ----------------------------
     def clean(self):
         if self.item.type in (ClothesType.TOP, ClothesType.SHOES) and not self.size:
-            raise ValidationError("Для этого вида одежды необходимо указать размер.")
+            raise ValidationError({
+                "size": "Для этого вида одежды необходимо указать размер."
+            })
 
         if self.item.type == ClothesType.OTHER and self.size:
-            raise ValidationError("Для безразмерной одежды размер не указывается.")
+            raise ValidationError({
+                "size": "Для безразмерной одежды размер не указывается."
+            })
 
     # ----------------------------
     # СОХРАНЕНИЕ
     # ----------------------------
     def save(self, *args, **kwargs):
-        is_new = self.pk is None
+        self.clean()
 
-        with transaction.atomic():
+        if self.date_received and self.operation_life_months:
+            self.date_expire = self.date_received + relativedelta(
+                months=self.operation_life_months
+            )
 
-            # 1️⃣ Размер
-            if not self.size:
-                if self.item.type == ClothesType.TOP:
-                    self.size = self.employee.clothes_size
-                elif self.item.type == ClothesType.SHOES:
-                    self.size = self.employee.shoe_size
+        super().save(*args, **kwargs)
 
-            # 2️⃣ Валидация
-            self.clean()
-
-            # 3️⃣ Предыдущее состояние (для редактирования)
-            previous = None
-            if not is_new:
-                previous = ClothesIssue.objects.select_for_update().get(pk=self.pk)
-
-            # 4️⃣ Подбор партии
-            if not self.stock_batch:
-                self.stock_batch = ClothesStockBatch.objects.select_for_update().filter(
-                    item=self.item,
-                    size=self.size
-                ).order_by("date_income").first()
-
-                if not self.stock_batch:
-                    raise ValidationError("На складе нет подходящей одежды.")
-
-            # 5️⃣ Проверка остатков
-            if is_new:
-                if self.stock_batch.quantity < self.quantity:
-                    raise ValidationError("Недостаточно одежды на складе.")
-                self.stock_batch.quantity -= self.quantity
-            else:
-                delta = self.quantity - previous.quantity
-                if delta > 0:
-                    if self.stock_batch.quantity < delta:
-                        raise ValidationError("Недостаточно одежды на складе.")
-                    self.stock_batch.quantity -= delta
-
-            self.stock_batch.save()
-
-            # 6️⃣ Дата окончания носки
-            if self.date_received and self.operation_life_months and not self.date_expire:
-                self.date_expire = self.date_received + timedelta(
-                    days=30 * self.operation_life_months
-                )
-
-            super().save(*args, **kwargs)
-
-
-
+    def __str__(self):
+        return f"{self.employee} — {self.item}"
 
 
 

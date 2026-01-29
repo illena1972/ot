@@ -1,7 +1,7 @@
 # serializers.py
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Department, Service, Position, Employee, ClothesItem, ClothesStockBatch, ClothesIssue, ClothesType
+from .models import Department, Service, Position, Employee, ClothesItem, ClothesStockBatch, ClothesType, ClothesIssue
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -108,12 +108,35 @@ class ClothesStockBatchSerializer(serializers.ModelSerializer):
         return data
 # выдача со склада
 
+
+
 class ClothesIssueSerializer(serializers.ModelSerializer):
     employee_name = serializers.CharField(
         source="employee.__str__", read_only=True
     )
-    item_name = serializers.CharField(source="item.name", read_only=True)
+    item_name = serializers.CharField(
+        source="item.name", read_only=True
+    )
+    item_type = serializers.CharField(
+        source="item.type", read_only=True
+    )
 
     class Meta:
         model = ClothesIssue
         fields = "__all__"
+
+    def validate(self, data):
+        item = data.get("item")
+        size = data.get("size")
+
+        if item.type in (ClothesType.TOP, ClothesType.SHOES) and not size:
+            raise serializers.ValidationError({
+                "size": "Для этого вида одежды необходимо указать размер."
+            })
+
+        if item.type == ClothesType.OTHER and size:
+            raise serializers.ValidationError({
+                "size": "Для безразмерной одежды размер указывать нельзя."
+            })
+
+        return data
