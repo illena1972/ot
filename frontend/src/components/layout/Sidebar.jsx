@@ -56,7 +56,7 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
 
          <div className="text-xs uppercase text-blue-300 px-4">Операции</div>
 
-        <div onClick={() => setCurrentPage("clothes")} className={linkClass("clothes")}>
+        <div onClick={() => setCurrentPage("issues")} className={linkClass("issues")}>
           <i className="fas fa-hand-holding w-5"></i>
           <span>Выдача одежды</span>
         </div>

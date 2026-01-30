@@ -11,6 +11,7 @@ import ServiceList from "./components/services/ServiceList";
 import PositionList from "./components/positions/PositionList";
 import ClothesList from "./components/clothes/ClothesList";
 import StockList from "./components/stocks/StockList";
+import IssueForm from "./components/issues/IssueForm";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         if (page === "positions") return <PositionList />;
         if (page === "clothes") return <ClothesList />;
         if (page === "stocks") return <StockList />;
+        if (page === "issues") return <IssueForm />;
 
       }}
     </Layout>
