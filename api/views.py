@@ -55,16 +55,18 @@ class ClothesItemViewSet(ModelViewSet):
     serializer_class = ClothesItemSerializer
 
 
-class ClothesIssueViewSet(ModelViewSet):
-    queryset = (
-        ClothesIssue.objects
-        .select_related("employee", "item")
-        .all()
-    )
-    serializer_class = ClothesIssueSerializer
 
 class ClothesStockBatchViewSet(ModelViewSet):
     queryset = ClothesStockBatch.objects.select_related("item").order_by("-date_income")
     serializer_class = ClothesStockBatchSerializer
 
 
+class ClothesIssueViewSet(ModelViewSet):
+    queryset = ClothesIssue.objects.select_related(
+        "employee"
+    ).prefetch_related(
+        "items",
+        "items__item"
+    )
+
+    serializer_class = ClothesIssueSerializer

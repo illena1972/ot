@@ -1,7 +1,9 @@
 # serializers.py
+from dateutil.relativedelta import relativedelta
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Department, Service, Position, Employee, ClothesItem, ClothesStockBatch, ClothesType, ClothesIssue
+from .models import Department, Service, Position, Employee, ClothesItem, ClothesStockBatch, ClothesType, ClothesIssue, \
+    ClothesIssueItem
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -109,20 +111,12 @@ class ClothesStockBatchSerializer(serializers.ModelSerializer):
 # выдача со склада
 
 
-
-class ClothesIssueSerializer(serializers.ModelSerializer):
-    employee_name = serializers.CharField(
-        source="employee.__str__", read_only=True
-    )
-    item_name = serializers.CharField(
-        source="item.name", read_only=True
-    )
-    item_type = serializers.CharField(
-        source="item.type", read_only=True
-    )
+class ClothesIssueItemSerializer(serializers.ModelSerializer):
+    item_name = serializers.CharField(source="item.name", read_only=True)
+    item_type = serializers.CharField(source="item.type", read_only=True)
 
     class Meta:
-        model = ClothesIssue
+        model = ClothesIssueItem
         fields = "__all__"
 
     def validate(self, data):
@@ -131,12 +125,48 @@ class ClothesIssueSerializer(serializers.ModelSerializer):
 
         if item.type in (ClothesType.TOP, ClothesType.SHOES) and not size:
             raise serializers.ValidationError({
-                "size": "Для этого вида одежды необходимо указать размер."
+                "size": "Для этого вида одежды необходимо указать размер"
             })
 
         if item.type == ClothesType.OTHER and size:
             raise serializers.ValidationError({
-                "size": "Для безразмерной одежды размер указывать нельзя."
+                "size": "Для безразмерной одежды размер указывать нельзя"
             })
 
         return data
+
+    def create(self, validated_data):
+        issue = validated_data["issue"]
+
+        # автоматический расчёт даты окончания носки
+        if issue.date_received and validated_data.get("operation_life_months"):
+            validated_data["date_expire"] = issue.date_received + relativedelta(
+                months=validated_data["operation_life_months"]
+            )
+
+        return super().create(validated_data)
+
+
+class ClothesIssueSerializer(serializers.ModelSerializer):
+    employee_name = serializers.CharField(
+        source="employee.__str__",
+        read_only=True
+    )
+
+    items = ClothesIssueItemSerializer(many=True)
+
+    class Meta:
+        model = ClothesIssue
+        fields = "__all__"
+
+    def create(self, validated_data):
+        items_data = validated_data.pop("items")
+        issue = ClothesIssue.objects.create(**validated_data)
+
+        for item_data in items_data:
+            ClothesIssueItem.objects.create(
+                issue=issue,
+                **item_data
+            )
+
+        return issue

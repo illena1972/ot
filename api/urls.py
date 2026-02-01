@@ -9,8 +9,8 @@ router.register("services", ServiceViewSet)
 router.register("positions", PositionViewSet)
 router.register("employees", EmployeeViewSet)
 router.register("clothes", ClothesItemViewSet)
-router.register(r"issues", ClothesIssueViewSet, basename="issue")
 router.register("stocks", ClothesStockBatchViewSet)
+router.register("clothes-issues", ClothesIssueViewSet)
 
 
 

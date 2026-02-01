@@ -1,8 +1,8 @@
 from django.db import models
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from dateutil.relativedelta import relativedelta
 from datetime import timedelta
-from django.core.exceptions import ValidationError
 from django.db import transaction
 
 
@@ -121,16 +121,9 @@ class ClothesStockBatch(models.Model):
             s += f" (размер {self.size})"
         return s
 
-
-
-from django.db import models
-from django.core.exceptions import ValidationError
-from django.utils import timezone
-from datetime import timedelta
-
-
+# Модель «шапки документа» — Выдача
 class ClothesIssue(models.Model):
-    """Выдача спецодежды сотруднику"""
+    """Документ выдачи спецодежды"""
 
     employee = models.ForeignKey(
         Employee,
@@ -138,45 +131,54 @@ class ClothesIssue(models.Model):
         verbose_name="Сотрудник"
     )
 
+    date_received = models.DateField(
+        "Дата выдачи",
+        default=timezone.now
+    )
+
+    note = models.TextField(
+        "Общее примечание",
+        blank=True,
+        null=True
+    )
+
+    class Meta:
+        ordering = ["-date_received"]
+
+    def __str__(self):
+        return f"{self.employee} — {self.date_received}"
+
+
+
+# Модель «строк документа» — Позиция выдачи
+
+class ClothesIssueItem(models.Model):
+    """Позиция выдачи"""
+
+    issue = models.ForeignKey(
+        ClothesIssue,
+        related_name="items",
+        on_delete=models.CASCADE,
+        verbose_name="Выдача"
+    )
+
     item = models.ForeignKey(
         ClothesItem,
         on_delete=models.CASCADE,
-        verbose_name="Экипировка"
+        verbose_name="Наименование"
     )
 
-    quantity = models.PositiveIntegerField(
-        "Количество",
-        default=1
-    )
+    quantity = models.PositiveIntegerField("Количество")
 
     size = models.PositiveIntegerField(
         "Размер",
         blank=True,
-        null=True,
-        help_text="Обязателен для верхней одежды и обуви"
+        null=True
     )
 
     operation_life_months = models.PositiveIntegerField(
-        "Срок эксплуатации (в месяцах)",
+        "Срок эксплуатации (мес.)",
         default=12
-    )
-
-    order_point = models.CharField(
-        "Пункт приказа",
-        max_length=255,
-        blank=True,
-        null=True
-    )
-
-    date_received = models.DateField(
-        "Дата получения",
-        default=timezone.now
-    )
-
-    date_expire = models.DateField(
-        "Дата окончания срока носки",
-        blank=True,
-        null=True
     )
 
     note = models.TextField(
@@ -185,40 +187,28 @@ class ClothesIssue(models.Model):
         null=True
     )
 
-    class Meta:
-        verbose_name = "Выдача одежды"
-        verbose_name_plural = "Выдачи одежды"
-        ordering = ["-date_received"]
+    date_expire = models.DateField(
+        "Дата окончания носки",
+        blank=True,
+        null=True
+    )
 
-    # ----------------------------
-    # ВАЛИДАЦИЯ
-    # ----------------------------
     def clean(self):
         if self.item.type in (ClothesType.TOP, ClothesType.SHOES) and not self.size:
-            raise ValidationError({
-                "size": "Для этого вида одежды необходимо указать размер."
-            })
+            raise ValidationError({"size": "Для этой одежды требуется размер"})
 
         if self.item.type == ClothesType.OTHER and self.size:
-            raise ValidationError({
-                "size": "Для безразмерной одежды размер не указывается."
-            })
+            raise ValidationError({"size": "Безразмерная одежда не имеет размера"})
 
-    # ----------------------------
-    # СОХРАНЕНИЕ
-    # ----------------------------
     def save(self, *args, **kwargs):
         self.clean()
 
-        if self.date_received and self.operation_life_months:
-            self.date_expire = self.date_received + relativedelta(
+        if self.issue.date_received and self.operation_life_months:
+            self.date_expire = self.issue.date_received + relativedelta(
                 months=self.operation_life_months
             )
 
         super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.employee} — {self.item}"
 
 
 
