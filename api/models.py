@@ -188,6 +188,11 @@ class ClothesIssueItem(models.Model):
         null=True
     )
 
+    height = models.PositiveIntegerField(
+        blank=True,
+        null=True
+    )
+
     operation_life_months = models.PositiveIntegerField(
         "Срок эксплуатации (мес.)",
         default=12
@@ -206,11 +211,23 @@ class ClothesIssueItem(models.Model):
     )
 
     def clean(self):
-        if self.item.type in (ClothesType.TOP, ClothesType.SHOES) and not self.size:
-            raise ValidationError({"size": "Для этой одежды требуется размер"})
+        if self.item.type == ClothesType.TOP:
+            if not self.size or not self.height:
+                raise ValidationError(
+                    "Для верхней одежды необходимо указать размер и рост."
+                )
 
-        if self.item.type == ClothesType.OTHER and self.size:
-            raise ValidationError({"size": "Безразмерная одежда не имеет размера"})
+        if self.item.type == ClothesType.SHOES:
+            if not self.size:
+                raise ValidationError("Для обуви требуется размер.")
+            if self.height:
+                raise ValidationError("Для обуви рост не указывается.")
+
+        if self.item.type == ClothesType.OTHER:
+            if self.size or self.height:
+                raise ValidationError("Безразмерная одежда не имеет размеров.")
+
+
 
     def save(self, *args, **kwargs):
         self.clean()
