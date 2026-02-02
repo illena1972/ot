@@ -102,6 +102,13 @@ class ClothesStockBatch(models.Model):
         help_text="Размер обязателен для верхней одежды и обуви"
     )
 
+    height = models.PositiveIntegerField(
+        "Рост",
+        blank=True,
+        null=True,
+        help_text="Указывается только для верхней одежды"
+    )
+
     quantity = models.PositiveIntegerField("Количество на складе")
 
     date_income = models.DateField("Дата поступления", default=timezone.now)
@@ -109,17 +116,22 @@ class ClothesStockBatch(models.Model):
     note = models.TextField("Примечание", blank=True, null=True)
 
     def clean(self):
-        if self.item.type in (ClothesType.TOP, ClothesType.SHOES) and self.size is None:
-            raise ValidationError("Для размерной одежды размер обязателен.")
+        if self.item.type == ClothesType.TOP:
+            if not self.size or not self.height:
+                raise ValidationError(
+                    "Для верхней одежды необходимо указать размер и рост."
+                )
 
-        if self.item.type == ClothesType.OTHER and self.size is not None:
-            raise ValidationError("Безразмерная одежда не должна иметь размер.")
+        if self.item.type == ClothesType.SHOES:
+            if not self.size:
+                raise ValidationError("Для обуви необходимо указать размер.")
+            if self.height:
+                raise ValidationError("Для обуви рост не указывается.")
 
-    def __str__(self):
-        s = self.item.name
-        if self.size is not None:
-            s += f" (размер {self.size})"
-        return s
+        if self.item.type == ClothesType.OTHER:
+            if self.size or self.height:
+                raise ValidationError("Для безразмерной одежды размер и рост не указываются.")
+
 
 # Модель «шапки документа» — Выдача
 class ClothesIssue(models.Model):
