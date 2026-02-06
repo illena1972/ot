@@ -70,47 +70,46 @@ class ClothesStockBatchSerializer(serializers.ModelSerializer):
     item_name = serializers.CharField(source="item.name", read_only=True)
     item_type = serializers.CharField(source="item.type", read_only=True)
 
-    date_income = serializers.DateField(
-        required=False,
-        allow_null=True
-    )
-
     class Meta:
         model = ClothesStockBatch
         fields = "__all__"
 
-    def to_internal_value(self, data):
-        data = data.copy()
-
-        # 👇 КЛЮЧЕВОЕ МЕСТО
-        if data.get("date_income") == "":
-            data["date_income"] = None
-
-        return super().to_internal_value(data)
-
-    def validate_date_income(self, value):
-        if value is None:
-            return timezone.now().date()
-        return value
-
     def validate(self, data):
         item = data.get("item")
         size = data.get("size")
+        height = data.get("height")
 
-        if item.type in (ClothesType.TOP, ClothesType.SHOES) and not size:
-            raise serializers.ValidationError({
-                "size": "Укажите размер одежды!"
-            })
+        if not item:
+            return data
 
-        if item.type == ClothesType.OTHER and size:
-            raise serializers.ValidationError({
-                "size": "Для безразмерной одежды размер указывать нельзя"
-            })
+        if item.type == ClothesType.TOP:
+            if not size or not height:
+                raise serializers.ValidationError({
+                    "size": "Для верхней одежды требуется размер",
+                    "height": "Для верхней одежды требуется рост",
+                })
+
+        if item.type == ClothesType.SHOES:
+            if not size:
+                raise serializers.ValidationError({
+                    "size": "Для обуви требуется размер"
+                })
+            if height:
+                raise serializers.ValidationError({
+                    "height": "Для обуви рост не указывается"
+                })
+
+        if item.type == ClothesType.OTHER:
+            if size or height:
+                raise serializers.ValidationError(
+                    "Для безразмерной одежды размер и рост не указываются"
+                )
 
         return data
+
+
+
 # выдача со склада
-
-
 class ClothesIssueItemSerializer(serializers.ModelSerializer):
     item_name = serializers.CharField(source="item.name", read_only=True)
     item_type = serializers.CharField(source="item.type", read_only=True)
@@ -122,29 +121,35 @@ class ClothesIssueItemSerializer(serializers.ModelSerializer):
     def validate(self, data):
         item = data.get("item")
         size = data.get("size")
+        height = data.get("height")
 
-        if item.type in (ClothesType.TOP, ClothesType.SHOES) and not size:
-            raise serializers.ValidationError({
-                "size": "Для этого вида одежды необходимо указать размер"
-            })
+        if not item:
+            return data
 
-        if item.type == ClothesType.OTHER and size:
-            raise serializers.ValidationError({
-                "size": "Для безразмерной одежды размер указывать нельзя"
-            })
+        if item.type == ClothesType.TOP:
+            if not size or not height:
+                raise serializers.ValidationError({
+                    "size": "Для верхней одежды требуется размер",
+                    "height": "Для верхней одежды требуется рост",
+                })
+
+        if item.type == ClothesType.SHOES:
+            if not size:
+                raise serializers.ValidationError({
+                    "size": "Для обуви требуется размер"
+                })
+            if height:
+                raise serializers.ValidationError({
+                    "height": "Для обуви рост не указывается"
+                })
+
+        if item.type == ClothesType.OTHER:
+            if size or height:
+                raise serializers.ValidationError(
+                    "Безразмерная одежда не имеет размера и роста"
+                )
 
         return data
-
-    def create(self, validated_data):
-        issue = validated_data["issue"]
-
-        # автоматический расчёт даты окончания носки
-        if issue.date_received and validated_data.get("operation_life_months"):
-            validated_data["date_expire"] = issue.date_received + relativedelta(
-                months=validated_data["operation_life_months"]
-            )
-
-        return super().create(validated_data)
 
 
 class ClothesIssueSerializer(serializers.ModelSerializer):
@@ -161,12 +166,20 @@ class ClothesIssueSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items_data = validated_data.pop("items")
+
         issue = ClothesIssue.objects.create(**validated_data)
 
         for item_data in items_data:
-            ClothesIssueItem.objects.create(
-                issue=issue,
-                **item_data
+            serializer = ClothesIssueItemSerializer(
+                data=item_data,
+                context={"issue": issue}
             )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
 
         return issue
+
+
+
+
+

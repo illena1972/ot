@@ -8,11 +8,11 @@ function StockForm({ stock, onSuccess }) {
   const [form, setForm] = useState({
   item: stock?.item || "",
   size: stock?.size ?? "",
+  height: stock?.height ?? "",
   quantity: stock?.quantity || "",
   date_income: stock?.date_income || "",
   note: stock?.note || "",
   });
-
   const [errors, setErrors] = useState({});
 
 
@@ -30,12 +30,23 @@ function StockForm({ stock, onSuccess }) {
   setSelectedItem(found || null);
 
   // 👇 ВАЖНО
-  if (found?.type === "other") {
-    setForm(prev => ({
-      ...prev,
-      size: null,
-    }));
-  }
+    if (found?.type === "other") {
+      setForm(prev => ({
+        ...prev,
+        size: null,
+        height: null,
+      }));
+    }
+
+    if (found?.type === "shoes") {
+      setForm(prev => ({
+        ...prev,
+        height: null,
+      }));
+    }
+
+
+
   }, [form.item, items]);
 
   useEffect(() => {
@@ -43,6 +54,7 @@ function StockForm({ stock, onSuccess }) {
     setForm({
       item: stock.item,
       size: stock.size ?? "",
+      height: stock.height ?? "",
       quantity: stock.quantity,
       date_income: stock.date_income,
       note: stock.note || "",
@@ -76,13 +88,22 @@ function StockForm({ stock, onSuccess }) {
       errs.quantity = "Укажите количество";
     }
 
-    if (
-      selectedItem &&
-      ["top", "shoes"].includes(selectedItem.type) &&
-      !form.size
-    ) {
-      errs.size = "Размер обязателен для этой одежды";
+    if (selectedItem?.type === "top") {
+      if (!form.size) errs.size = "Укажите размер";
+      if (!form.height) errs.height = "Укажите рост";
     }
+
+    if (selectedItem?.type === "shoes") {
+      if (!form.size) errs.size = "Укажите размер";
+      if (form.height) errs.height = "Рост для обуви не указывается";
+    }
+
+    if (selectedItem?.type === "other") {
+      if (form.size || form.height) {
+        errs.size = "Для безразмерной одежды размеры не указываются";
+      }
+    }
+
 
     if (
       selectedItem &&
@@ -164,6 +185,26 @@ function StockForm({ stock, onSuccess }) {
           {errors.size && <p className="text-red-600 text-sm">{errors.size}</p>}
         </div>
       )}
+
+
+      {/* Рост — только для верхней одежды */}
+        {selectedItem && selectedItem.type === "top" && (
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Рост
+            </label>
+            <input
+              type="number"
+              name="height"
+              value={form.height ?? ""}
+              onChange={handleChange}
+              className="w-full border rounded-lg px-3 py-2"
+            />
+            {errors.height && (
+              <p className="text-red-600 text-sm">{errors.height}</p>
+            )}
+          </div>
+        )}
 
       {/* Количество */}
       <div>
