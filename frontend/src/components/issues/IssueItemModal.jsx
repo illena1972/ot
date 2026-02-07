@@ -7,6 +7,9 @@ export default function IssueItemModal({ onClose, onAdd }) {
   const [items, setItems] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
 
+
+
+
   const [form, setForm] = useState({
     item: "",
     quantity: 1,
@@ -63,6 +66,10 @@ export default function IssueItemModal({ onClose, onAdd }) {
       }
     }
 
+    if (available !== null && form.quantity > available) {
+      errs.quantity = `Недостаточно на складе (доступно ${available})`;
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -83,6 +90,30 @@ export default function IssueItemModal({ onClose, onAdd }) {
 
     onClose();
   };
+
+
+  // для проверки хватает ли позиций для выдачи
+  const [available, setAvailable] = useState(null);
+  useEffect(() => {
+  if (!form.item) {
+    setAvailable(null);
+    return;
+  }
+
+  const params = {
+    item: form.item,
+  };
+
+  if (form.size) params.size = form.size;
+  if (form.height) params.height = form.height;
+
+  api
+    .get("stocks/available/", { params })
+    .then(res => setAvailable(res.data.available))
+    .catch(() => setAvailable(0));
+
+}, [form.item, form.size, form.height]);
+
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -140,6 +171,16 @@ export default function IssueItemModal({ onClose, onAdd }) {
         </div>
       )}
 
+      {available !== null && (
+          <p className="text-sm text-gray-600">
+            Доступно на складе:{" "}
+            <span className={available > 0 ? "font-semibold" : "text-red-600"}>
+              {available}
+            </span>
+          </p>
+        )}
+
+
         {/* Количество */}
         <div>
           <label className="block text-sm font-medium mb-1">Количество</label>
@@ -193,11 +234,11 @@ export default function IssueItemModal({ onClose, onAdd }) {
           </button>
 
           <button
-            onClick={handleSubmit}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white"
-          >
-            Добавить
-          </button>
+              onClick={handleSubmit}
+              disabled={available !== null && form.quantity > available}
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:bg-gray-400">
+              Добавить
+            </button>
         </div>
       </div>
     </div>

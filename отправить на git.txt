@@ -2,5 +2,8 @@ git add .
 git commit -m "Описание"
 git push
 
+
+git pull
+
 npm run dev
 python manage.py runserver

@@ -179,7 +179,11 @@ class ClothesIssueSerializer(serializers.ModelSerializer):
 
         return issue
 
-
+# для проверки доступности при добавлении позиции
+class StockAvailableSerializer(serializers.Serializer):
+    item = serializers.IntegerField()
+    size = serializers.IntegerField(required=False, allow_null=True)
+    height = serializers.IntegerField(required=False, allow_null=True)
 
 
 

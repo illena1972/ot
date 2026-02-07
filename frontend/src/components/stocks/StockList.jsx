@@ -15,9 +15,6 @@ export default function StockList() {
   const [typeFilter, setTypeFilter] = useState("all");
 
 
-
-
-
   const CLOTHES_TYPE_UI = {
   top: {
     bg: "bg-blue-100",
@@ -72,6 +69,26 @@ const TYPE_FILTERS = [
     loadStocks();
   }, []);
 
+  const renderSize = (stock) => {
+      if (stock.item_type === "other") {
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 whitespace-nowrap">
+            Без размера
+          </span>
+        );
+      }
+
+      if (stock.item_type === "top") {
+        if (stock.size && stock.height) {
+          return `${stock.size} / ${stock.height}`;
+        }
+        return "—";
+      }
+
+      // shoes
+      return stock.size ?? "—";
+    };
+
 
 
     // -------------------------
@@ -79,17 +96,22 @@ const TYPE_FILTERS = [
     // -------------------------
     const stockSummaryMap = {};
 
+
+
     stocks.forEach(stock => {
-      const key = `${stock.item}-${stock.size ?? "none"}`;
+      const key = `${stock.item}-${stock.size ?? "none"}-${stock.height ?? "none"}`;
 
       if (!stockSummaryMap[key]) {
-        stockSummaryMap[key] = {
+         stockSummaryMap[key] = {
           item_name: stock.item_name,
           item_type: stock.item_type,
           size: stock.size,
+          height: stock.height,
           quantity: 0,
         };
       }
+
+
 
       stockSummaryMap[key].quantity += stock.quantity;
     });
@@ -241,16 +263,7 @@ const TYPE_FILTERS = [
 
 
                     <td className="px-6 py-4">
-                      {stock.size ? (
-                        stock.size
-                      ) : stock.item_type === "other" ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 whitespace-nowrap">
-                          Без размера
-                        </span>
-
-                      ) : (
-                        "—"
-                      )}
+                     {renderSize(stock)}
                     </td>
 
 
@@ -339,13 +352,7 @@ const TYPE_FILTERS = [
 
                     {/* Размер */}
                     <td className="px-6 py-4">
-                      {row.size ? (
-                        row.size
-                      ) : (
-                        <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-gray-600">
-                          Без размера
-                        </span>
-                      )}
+                       {renderSize(row)}
                     </td>
 
                     {/* Количество */}
