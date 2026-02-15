@@ -78,7 +78,7 @@ class ClothesType(models.TextChoices):
 
 class ClothesItem(models.Model):
     """Вид спецодежды"""
-    name = models.CharField("Наименование", max_length=255)
+    name = models.CharField("Наименование", max_length=255, unique=True)
     type = models.CharField("Тип одежды", max_length=20, choices=ClothesType.choices)
 
     def __str__(self):

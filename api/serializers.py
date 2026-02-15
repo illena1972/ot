@@ -1,7 +1,7 @@
 # serializers.py
-from dateutil.relativedelta import relativedelta
 from rest_framework import serializers
-from django.utils import timezone
+from rest_framework.validators import UniqueValidator
+
 from .models import Department, Service, Position, Employee, ClothesItem, ClothesStockBatch, ClothesType, ClothesIssue, \
     ClothesIssueItem
 
@@ -9,21 +9,51 @@ from .models import Department, Service, Position, Employee, ClothesItem, Clothe
 class DepartmentSerializer(serializers.ModelSerializer):
     employee_count = serializers.IntegerField(read_only=True)
 
+    name = serializers.CharField(
+        validators=[
+            UniqueValidator(
+                queryset=Department.objects.all(),
+                message="Подразделение с таким наименованием уже существует"
+            )
+        ]
+    )
+
     class Meta:
         model = Department
         fields = ["id", "name", "employee_count"]
 
 
+
 class ServiceSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(
+        validators=[
+            UniqueValidator(
+                queryset=Service.objects.all(),
+                message="Служба с таким наименованием уже существует"
+            )
+        ]
+    )
     class Meta:
         model = Service
         fields = "__all__"
 
 
+
+
 class PositionSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(
+        validators=[
+            UniqueValidator(
+                queryset=Position.objects.all(),
+                message="Должность с таким наименованием уже существует"
+            )
+        ]
+    )
     class Meta:
         model = Position
         fields = "__all__"
+
+
 
 class EmployeeSerializer(serializers.ModelSerializer):
     department_name = serializers.CharField(
@@ -59,11 +89,22 @@ class EmployeeSerializer(serializers.ModelSerializer):
         ]
 
 class ClothesItemSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(
+        validators=[
+            UniqueValidator(
+                queryset=ClothesItem.objects.all(),
+                message="Одежда с таким наименованием уже существует"
+            )
+        ]
+    )
+
     type_label = serializers.CharField(source="get_type_display", read_only=True)
 
     class Meta:
         model = ClothesItem
         fields = ["id", "name", "type", "type_label"]
+
+
 
 # поступление на склад
 class ClothesStockBatchSerializer(serializers.ModelSerializer):

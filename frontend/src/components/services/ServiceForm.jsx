@@ -35,9 +35,15 @@ function ServiceForm({ service, onSuccess }) {
 
     if (onSuccess) onSuccess();
   } catch (err) {
-    console.error(err);
-    alert("Ошибка при сохранении");
-  }
+      console.error(err);
+
+      if (err.response?.data?.name) {
+        alert(err.response.data.name[0]);
+      } else {
+        alert("Ошибка при сохранении");
+      }
+    }
+
 };
 
 
