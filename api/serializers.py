@@ -87,6 +87,40 @@ class EmployeeSerializer(serializers.ModelSerializer):
             "height",
             "shoe_size",
         ]
+        validators = []  # ← отключаем авто-unique validator
+
+    def validate(self, data):
+
+        last_name = data.get("last_name")
+        first_name = data.get("first_name")
+        middle_name = data.get("middle_name")
+        department = data.get("department")
+        service = data.get("service")
+        position = data.get("position")
+
+        qs = Employee.objects.filter(
+            last_name=last_name,
+            first_name=first_name,
+            middle_name=middle_name,
+            department=department,
+            service=service,
+            position=position,
+        )
+
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+
+        if qs.exists():
+            raise serializers.ValidationError({
+                "non_field_errors": [
+                    "Сотрудник с такими ФИО, подразделением, службой и должностью уже существует"
+                ]
+            })
+
+        return data
+
+
+
 
 class ClothesItemSerializer(serializers.ModelSerializer):
     name = serializers.CharField(

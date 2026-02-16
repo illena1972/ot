@@ -58,6 +58,26 @@ class Employee(models.Model):
     height = models.IntegerField("Рост", blank=True, null=True)
     shoe_size = models.IntegerField("Размер обуви", blank=True, null=True)
 
+    class Meta:
+        verbose_name = "Сотрудник"
+        verbose_name_plural = "Сотрудники"
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "last_name",
+                    "first_name",
+                    "middle_name",
+                    "department",
+                    "service",
+                    "position",
+                ],
+                name="unique_employee_full_identity",
+                violation_error_message="Сотрудник с такими ФИО, подразделением, службой и должностью уже существует",
+            )
+        ]
+
+
 
     def __str__(self):
         return f"{self.last_name} {self.first_name} {self.middle_name or ''}".strip()

@@ -64,9 +64,20 @@ function EmployeeForm({ employee, onSuccess }) {
 
     if (onSuccess) onSuccess();
   } catch (err) {
-    console.error(err);
-    alert("Ошибка при сохранении");
-  }
+      console.error(err);
+
+      if (err.response?.data) {
+          const data = err.response.data;
+
+          if (data.non_field_errors) {
+            alert(data.non_field_errors[0]);
+            return;
+          }
+      }
+
+      alert("Ошибка при сохранении");
+    }
+
 };
 
 
