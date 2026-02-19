@@ -11,6 +11,7 @@ from .serializers import (
     ClothesIssueSerializer,
     ClothesStockBatchSerializer,
     StockAvailableSerializer,
+    EmployeeIssueReportSerializer,
 )
 
 from django_filters.rest_framework import DjangoFilterBackend
@@ -39,20 +40,65 @@ class PositionViewSet(ModelViewSet):
     queryset = Position.objects.order_by("name")
     serializer_class = PositionSerializer
 
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter
+
+from .models import Employee, ClothesIssueItem
+from .serializers import EmployeeSerializer
+
+
+# GET /api/employees/{id}/
 class EmployeeViewSet(ModelViewSet):
     queryset = Employee.objects.select_related(
-        "department", "service", "position"
+        "department",
+        "service",
+        "position"
     ).order_by("last_name", "first_name")
 
     serializer_class = EmployeeSerializer
 
     filter_backends = [DjangoFilterBackend, SearchFilter]
 
-    # фильтр по подразделению
     filterset_fields = ["department"]
 
-    # 🔍 поиск ТОЛЬКО по фамилии
-    search_fields = ["last_name"]
+    search_fields = [
+        "last_name",
+        "first_name",
+        "middle_name",
+    ]
+
+    # -------------------------
+    # ОТЧЕТ ПО СОТРУДНИКУ
+    # GET /api/employees/{id}/report/
+    # -------------------------
+    @action(detail=True, methods=["get"])
+    def report(self, request, pk=None):
+        employee = self.get_object()
+
+        items = ClothesIssueItem.objects.select_related(
+            "issue",
+            "item"
+        ).filter(
+            issue__employee=employee
+        ).order_by("-issue__date_received")
+
+        serializer = EmployeeIssueReportSerializer(items, many=True)
+
+        return Response({
+            "employee": {
+                "id": employee.id,
+                "last_name": employee.last_name,
+                "first_name": employee.first_name,
+                "middle_name": employee.middle_name,
+                "department": employee.department.name if employee.department else "",
+                "service": employee.service.name if employee.service else "",
+                "position": employee.position.name if employee.position else "",
+            },
+            "items": serializer.data
+        })
 
 
 class ClothesItemViewSet(ModelViewSet):
@@ -119,3 +165,4 @@ class StockAvailableView(APIView):
         total = qs.aggregate(total=Sum("quantity"))["total"] or 0
 
         return Response({"available": total})
+

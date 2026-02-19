@@ -12,6 +12,10 @@ import PositionList from "./components/positions/PositionList";
 import ClothesList from "./components/clothes/ClothesList";
 import StockList from "./components/stocks/StockList";
 import IssueCreate from "./components/issues/IssueCreate";
+import EmployeeReportPage from "./components/reports/EmployeeReportPage";
+
+
+
 
 function App() {
   return (
@@ -24,11 +28,13 @@ function App() {
         if (page === "clothes") return <ClothesList />;
         if (page === "stocks") return <StockList />;
         if (page === "issues") return <IssueCreate />;
+        if (page === "employee-report") return <EmployeeReportPage />;
 
       }}
     </Layout>
   );
 }
+
 
 export default App;
 

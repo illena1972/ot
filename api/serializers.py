@@ -1,7 +1,7 @@
 # serializers.py
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-
+from datetime import date
 from .models import Department, Service, Position, Employee, ClothesItem, ClothesStockBatch, ClothesType, ClothesIssue, \
     ClothesIssueItem
 
@@ -260,5 +260,30 @@ class StockAvailableSerializer(serializers.Serializer):
     size = serializers.IntegerField(required=False, allow_null=True)
     height = serializers.IntegerField(required=False, allow_null=True)
 
+# отчет выдачи по сотруднику
+class EmployeeIssueReportSerializer(serializers.ModelSerializer):
+    item_name = serializers.CharField(source="item.name")
+    date_received = serializers.DateField(source="issue.date_received")
+    date_expire = serializers.DateField()  # ← вот так правильно
 
+    class Meta:
+        model = ClothesIssueItem
+        fields = [
+            "id",
+            "item_name",
+            "quantity",
+            "size",
+            "height",
+            "date_received",
+            "date_expire",
+        ]
 
+    def get_status(self, obj):
+
+        if not obj.date_expire:
+            return "active"
+
+        if obj.date_expire <= date.today():
+            return "expired"
+
+        return "active"
