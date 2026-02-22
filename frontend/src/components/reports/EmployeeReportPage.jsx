@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import api from "../../api/api";
 import EmployeeReportTable from "./EmployeeReportTable";
+import Modal from "./Modal"; // путь к Modal.jsx
+
 
 export default function EmployeeReportPage() {
 
@@ -66,6 +68,29 @@ export default function EmployeeReportPage() {
 
     }
   };
+
+  const handleWriteOff = async (itemId) => {
+
+  if (!window.confirm("Списать эту позицию?"))
+    return;
+
+  try {
+
+    await api.delete(`issue-items/${itemId}/`);
+
+    setReportItems(prev =>
+      prev.filter(item => item.id !== itemId)
+    );
+
+  } catch (err) {
+
+    console.error(err);
+    alert("Ошибка списания");
+
+  }
+
+};
+
 
   return (
 
@@ -149,15 +174,23 @@ export default function EmployeeReportPage() {
 
 
       {/* таблица */}
+
+
       {selectedEmployee && (
-
-        <EmployeeReportTable
-          employee={selectedEmployee}
-          items={reportItems}
-          loading={loading}
-        />
-
-      )}
+          <Modal
+            isOpen={!!selectedEmployee}
+            onClose={() => setSelectedEmployee(null)}
+            title={`Выдача сотруднику: ${selectedEmployee.last_name} ${selectedEmployee.first_name} ${selectedEmployee.middle_name}`}
+            width="max-w-5xl"
+          >
+            <EmployeeReportTable
+              employee={selectedEmployee}
+              items={reportItems}
+              loading={loading}
+              onWriteOff={handleWriteOff}
+            />
+          </Modal>
+        )}
 
     </div>
 

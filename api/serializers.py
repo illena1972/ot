@@ -3,7 +3,7 @@ from django.db import transaction
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from datetime import date
-from .models import Department, Service, Position, Employee, ClothesItem, ClothesStockBatch, ClothesType, ClothesIssue, \
+from .models import Department, Service, Position, Employee, ClothesItem, ClothesType, ClothesIssue, \
     ClothesIssueItem, Stock
 from django.db.models import F
 
@@ -145,48 +145,6 @@ class ClothesItemSerializer(serializers.ModelSerializer):
 
 
 
-# поступление на склад
-class ClothesStockBatchSerializer(serializers.ModelSerializer):
-    item_name = serializers.CharField(source="item.name", read_only=True)
-    item_type = serializers.CharField(source="item.type", read_only=True)
-
-    class Meta:
-        model = ClothesStockBatch
-        fields = "__all__"
-
-    def validate(self, data):
-        item = data.get("item")
-        size = data.get("size")
-        height = data.get("height")
-
-        if not item:
-            return data
-
-        if item.type == ClothesType.TOP:
-            if not size or not height:
-                raise serializers.ValidationError({
-                    "size": "Для верхней одежды требуется размер",
-                    "height": "Для верхней одежды требуется рост",
-                })
-
-        if item.type == ClothesType.SHOES:
-            if not size:
-                raise serializers.ValidationError({
-                    "size": "Для обуви требуется размер"
-                })
-            if height:
-                raise serializers.ValidationError({
-                    "height": "Для обуви рост не указывается"
-                })
-
-        if item.type == ClothesType.OTHER:
-            if size or height:
-                raise serializers.ValidationError(
-                    "Для безразмерной одежды размер и рост не указываются"
-                )
-
-        return data
-
 
 
 # выдача со склада
@@ -255,9 +213,11 @@ class StockAvailableSerializer(serializers.Serializer):
 
 # отчет выдачи по сотруднику
 class EmployeeIssueReportSerializer(serializers.ModelSerializer):
+
     item_name = serializers.CharField(source="item.name")
     date_received = serializers.DateField(source="issue.date_received")
-    date_expire = serializers.DateField()  # ← вот так правильно
+
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = ClothesIssueItem
@@ -269,6 +229,7 @@ class EmployeeIssueReportSerializer(serializers.ModelSerializer):
             "height",
             "date_received",
             "date_expire",
+            "status",
         ]
 
     def get_status(self, obj):
@@ -280,7 +241,6 @@ class EmployeeIssueReportSerializer(serializers.ModelSerializer):
             return "expired"
 
         return "active"
-
 
 class StockSerializer(serializers.ModelSerializer):
     item_name = serializers.CharField(source="item.name", read_only=True)

@@ -2,8 +2,10 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from dateutil.relativedelta import relativedelta
-from datetime import timedelta
+
 from django.db import transaction
+from django.db.models import F
+
 
 
 class Department(models.Model):
@@ -96,6 +98,16 @@ class ClothesType(models.TextChoices):
     OTHER = "other", "Безразмерная экипировка"
 
 
+
+# ClothesItem → справочник одежды
+#
+# Stock → текущие остатки (агрегированные)
+#
+# ClothesIssue → документ выдачи
+#
+# ClothesIssueItem → строки выдачи
+
+
 class ClothesItem(models.Model):
     """Вид спецодежды"""
     name = models.CharField("Наименование", max_length=255, unique=True)
@@ -105,52 +117,15 @@ class ClothesItem(models.Model):
         return self.name
 
 
+class Stock(models.Model):
+    item = models.ForeignKey("ClothesItem", on_delete=models.CASCADE)
+    size = models.IntegerField(null=True, blank=True)
+    height = models.IntegerField(null=True, blank=True)
+    quantity = models.IntegerField(default=0)
 
+    class Meta:
+        unique_together = ("item", "size", "height")
 
-# Модель: Партия на складе (ClothesStockBatch)
-class ClothesStockBatch(models.Model):
-    item = models.ForeignKey(
-        ClothesItem,
-        on_delete=models.PROTECT,
-        verbose_name="Вид одежды"
-    )
-
-    size = models.PositiveIntegerField(
-        "Размер",
-        blank=True,
-        null=True,
-        help_text="Размер обязателен для верхней одежды и обуви"
-    )
-
-    height = models.PositiveIntegerField(
-        "Рост",
-        blank=True,
-        null=True,
-        help_text="Указывается только для верхней одежды"
-    )
-
-    quantity = models.PositiveIntegerField("Количество на складе")
-
-    #date_income = models.DateField("Дата поступления", default=timezone.now)
-
-    note = models.TextField("Примечание", blank=True, null=True)
-
-    def clean(self):
-        if self.item.type == ClothesType.TOP:
-            if not self.size or not self.height:
-                raise ValidationError(
-                    "Для верхней одежды необходимо указать размер и рост."
-                )
-
-        if self.item.type == ClothesType.SHOES:
-            if not self.size:
-                raise ValidationError("Для обуви необходимо указать размер.")
-            if self.height:
-                raise ValidationError("Для обуви рост не указывается.")
-
-        if self.item.type == ClothesType.OTHER:
-            if self.size or self.height:
-                raise ValidationError("Для безразмерной одежды размер и рост не указываются.")
 
 
 # Модель «шапки документа» — Выдача
@@ -247,9 +222,10 @@ class ClothesIssueItem(models.Model):
             if self.size or self.height:
                 raise ValidationError("Безразмерная одежда не имеет размеров.")
 
-
-
     def save(self, *args, **kwargs):
+
+        is_new = self.pk is None
+
         self.clean()
 
         if self.issue.date_received and self.operation_life_months:
@@ -257,19 +233,36 @@ class ClothesIssueItem(models.Model):
                 months=self.operation_life_months
             )
 
-        super().save(*args, **kwargs)
+        with transaction.atomic():
+
+            if is_new:
+
+                try:
+                    stock = Stock.objects.select_for_update().get(
+                        item=self.item,
+                        size=self.size,
+                        height=self.height
+                    )
+                except Stock.DoesNotExist:
+                    raise ValidationError(
+                        f"На складе нет '{self.item}' "
+                        f"(размер {self.size}, рост {self.height})"
+                    )
+
+                if stock.quantity < self.quantity:
+                    raise ValidationError(
+                        f"Недостаточно на складе '{self.item}'. "
+                        f"Доступно: {stock.quantity}, требуется: {self.quantity}"
+                    )
+
+                stock.quantity = F("quantity") - self.quantity
+                stock.save()
+
+            super().save(*args, **kwargs)
 
 
 
 
-class Stock(models.Model):
-    item = models.ForeignKey("ClothesItem", on_delete=models.CASCADE)
-    size = models.IntegerField(null=True, blank=True)
-    height = models.IntegerField(null=True, blank=True)
-    quantity = models.IntegerField(default=0)
-
-    class Meta:
-        unique_together = ("item", "size", "height")
 
 
 

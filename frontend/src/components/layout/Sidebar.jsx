@@ -61,7 +61,7 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
           <span>Выдача одежды</span>
         </div>
 
-        <div onClick={() => setCurrentPage("employee-report")} className={linkClass("issues")}>
+        <div onClick={() => setCurrentPage("employee-report")} className={linkClass("employee-report")}>
           <i className="fas fa-table w-5"></i>
           <span>Отчет по выдаче</span>
         </div>
