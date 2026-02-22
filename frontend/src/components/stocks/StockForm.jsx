@@ -5,12 +5,17 @@ function StockForm({ stock, onSuccess }) {
   const [items, setItems] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
 
+
+  const getToday = () => {
+      return new Date().toISOString().split("T")[0];
+    };
+
   const [form, setForm] = useState({
   item: stock?.item || "",
   size: stock?.size ?? "",
   height: stock?.height ?? "",
   quantity: stock?.quantity || "",
-  date_income: stock?.date_income || "",
+  //date_income: stock?.date_income || getToday(),
   note: stock?.note || "",
   });
   const [errors, setErrors] = useState({});
@@ -56,7 +61,7 @@ function StockForm({ stock, onSuccess }) {
       size: stock.size ?? "",
       height: stock.height ?? "",
       quantity: stock.quantity,
-      date_income: stock.date_income,
+      //date_income: stock.date_income || getToday(),
       note: stock.note || "",
     });
   }
@@ -132,8 +137,11 @@ function StockForm({ stock, onSuccess }) {
 
     if (onSuccess) onSuccess();
   } catch (err) {
-    console.error(err);
-    alert("Ошибка при сохранении");
+      console.error("FULL ERROR:", err);
+      console.error("RESPONSE:", err.response);
+      console.error("DATA:", err.response?.data);
+
+      alert(JSON.stringify(err.response?.data, null, 2));
   }
 };
 
@@ -225,18 +233,7 @@ function StockForm({ stock, onSuccess }) {
         )}
       </div>
 
-      <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Дата поступления
-          </label>
-          <input
-            type="date"
-            name="date_income"
-            value={form.date_income}
-            onChange={handleChange}
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
-          />
-      </div>
+
 
       <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">

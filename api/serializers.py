@@ -1,11 +1,16 @@
 # serializers.py
+from django.db import transaction
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from datetime import date
 from .models import Department, Service, Position, Employee, ClothesItem, ClothesStockBatch, ClothesType, ClothesIssue, \
-    ClothesIssueItem
+    ClothesIssueItem, Stock
+from django.db.models import F
 
 
+
+
+import logging
 class DepartmentSerializer(serializers.ModelSerializer):
     employee_count = serializers.IntegerField(read_only=True)
 
@@ -185,46 +190,21 @@ class ClothesStockBatchSerializer(serializers.ModelSerializer):
 
 
 # выдача со склада
-class ClothesIssueItemSerializer(serializers.ModelSerializer):
-    item_name = serializers.CharField(source="item.name", read_only=True)
-    item_type = serializers.CharField(source="item.type", read_only=True)
 
+class ClothesIssueItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = ClothesIssueItem
-        fields = "__all__"
-
-    def validate(self, data):
-        item = data.get("item")
-        size = data.get("size")
-        height = data.get("height")
-
-        if not item:
-            return data
-
-        if item.type == ClothesType.TOP:
-            if not size or not height:
-                raise serializers.ValidationError({
-                    "size": "Для верхней одежды требуется размер",
-                    "height": "Для верхней одежды требуется рост",
-                })
-
-        if item.type == ClothesType.SHOES:
-            if not size:
-                raise serializers.ValidationError({
-                    "size": "Для обуви требуется размер"
-                })
-            if height:
-                raise serializers.ValidationError({
-                    "height": "Для обуви рост не указывается"
-                })
-
-        if item.type == ClothesType.OTHER:
-            if size or height:
-                raise serializers.ValidationError(
-                    "Безразмерная одежда не имеет размера и роста"
-                )
-
-        return data
+        fields = [
+            "id",
+            "issue",
+            "item",
+            "quantity",
+            "size",
+            "height",
+            "operation_life_months",
+            "note",
+        ]
+        read_only_fields = ["issue"]  # issue будет передаваться при создании через parent serializer
 
 
 class ClothesIssueSerializer(serializers.ModelSerializer):
@@ -232,27 +212,40 @@ class ClothesIssueSerializer(serializers.ModelSerializer):
         source="employee.__str__",
         read_only=True
     )
-
     items = ClothesIssueItemSerializer(many=True)
 
     class Meta:
         model = ClothesIssue
-        fields = "__all__"
+        fields = [
+            "id",
+            "employee",
+            "employee_name",
+            "date_received",
+            "note",
+            "items",
+        ]
 
     def create(self, validated_data):
+        # забираем позиции и удаляем их из данных для создания самой выдачи
         items_data = validated_data.pop("items")
 
+        # создаём сам документ выдачи
         issue = ClothesIssue.objects.create(**validated_data)
 
+        # создаём позиции, привязывая их к документу
         for item_data in items_data:
-            serializer = ClothesIssueItemSerializer(
-                data=item_data,
-                context={"issue": issue}
+            ClothesIssueItem.objects.create(
+                issue=issue,
+                item=item_data["item"],
+                quantity=item_data["quantity"],
+                size=item_data.get("size"),
+                height=item_data.get("height"),
+                operation_life_months=item_data.get("operation_life_months", 12),
+                note=item_data.get("note", ""),
             )
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
 
         return issue
+
 
 # для проверки доступности при добавлении позиции
 class StockAvailableSerializer(serializers.Serializer):
@@ -287,3 +280,20 @@ class EmployeeIssueReportSerializer(serializers.ModelSerializer):
             return "expired"
 
         return "active"
+
+
+class StockSerializer(serializers.ModelSerializer):
+    item_name = serializers.CharField(source="item.name", read_only=True)
+    item_type = serializers.CharField(source="item.type", read_only=True)
+
+    class Meta:
+        model = Stock
+        fields = [
+            "id",
+            "item",
+            "item_name",
+            "item_type",
+            "size",
+            "height",
+            "quantity",
+        ]

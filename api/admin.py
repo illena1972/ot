@@ -20,14 +20,12 @@ class ClothesStockBatchAdmin(admin.ModelAdmin):
         'item',
         'size',
         'quantity',
-        'date_income',
     )
 
     list_filter = (
         'item__type',    # фильтр по типу одежды (TOP/SHOES/OTHER)
         'item',          # фильтр по конкретному виду одежды
         'size',          # фильтр по размерам
-        'date_income',
     )
 
     search_fields = (
@@ -40,7 +38,7 @@ class ClothesStockBatchAdmin(admin.ModelAdmin):
     # Для удобства редактирования
     fieldsets = (
         ("Информация о партии", {
-            "fields": ("item", "size", "quantity", "date_income")
+            "fields": ("item", "size", "quantity")
         }),
         ("Примечание", {
             "fields": ("note",),

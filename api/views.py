@@ -1,25 +1,35 @@
 # views.py
 from django.db.models import Count
 from rest_framework.viewsets import ModelViewSet
-from .models import Department, Service, Position, Employee, ClothesItem, ClothesIssue, ClothesStockBatch, ClothesType
+from .models import Department, Service, Position, Employee, ClothesItem, ClothesIssue, ClothesStockBatch, ClothesType, \
+    Stock
 from .serializers import (
     DepartmentSerializer,
     ServiceSerializer,
     PositionSerializer,
-    EmployeeSerializer,
     ClothesItemSerializer,
     ClothesIssueSerializer,
     ClothesStockBatchSerializer,
     StockAvailableSerializer,
-    EmployeeIssueReportSerializer,
+    EmployeeIssueReportSerializer, StockSerializer,
 )
 
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter
 from django.db.models import Sum
 from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+from django.db.models import F
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter
+
+from .models import Employee, ClothesIssueItem
+from .serializers import EmployeeSerializer
+
+from .models import ClothesIssue
+
+
 
 
 class DepartmentViewSet(ModelViewSet):
@@ -40,14 +50,7 @@ class PositionViewSet(ModelViewSet):
     queryset = Position.objects.order_by("name")
     serializer_class = PositionSerializer
 
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter
 
-from .models import Employee, ClothesIssueItem
-from .serializers import EmployeeSerializer
 
 
 # GET /api/employees/{id}/
@@ -108,18 +111,17 @@ class ClothesItemViewSet(ModelViewSet):
 
 
 class ClothesStockBatchViewSet(ModelViewSet):
-    queryset = ClothesStockBatch.objects.select_related("item").order_by("-date_income")
+    #queryset = ClothesStockBatch.objects.select_related("item").order_by("-date_income")
+    queryset = ClothesStockBatch.objects.select_related("item")
     serializer_class = ClothesStockBatchSerializer
 
 
-class ClothesIssueViewSet(ModelViewSet):
-    queryset = ClothesIssue.objects.select_related(
-        "employee"
-    ).prefetch_related(
-        "items",
-        "items__item"
-    )
 
+
+class ClothesIssueViewSet(ModelViewSet):
+    queryset = ClothesIssue.objects.select_related("employee").prefetch_related(
+        "items", "items__stock", "items__stock__item"
+    )
     serializer_class = ClothesIssueSerializer
 
 
@@ -166,3 +168,52 @@ class StockAvailableView(APIView):
 
         return Response({"available": total})
 
+
+
+class StockViewSet(ModelViewSet):
+    queryset = Stock.objects.all()
+    serializer_class = StockSerializer
+
+    def create(self, request, *args, **kwargs):
+        item = request.data.get("item")
+        size = request.data.get("size")
+        height = request.data.get("height")
+        quantity = int(request.data.get("quantity", 0))
+
+        stock, created = Stock.objects.get_or_create(
+            item_id=item,
+            size=size,
+            height=height,
+            defaults={
+                "quantity": quantity,
+            }
+        )
+
+        if not created:
+            stock.quantity = F("quantity") + quantity
+            stock.save()
+            stock.refresh_from_db()
+
+        serializer = self.get_serializer(stock)
+        return Response(serializer.data)
+
+
+@api_view(["GET"])
+def stock_available(request):
+    """
+    Возвращает количество доступных единиц одежды на складе
+    с учётом item, size и height.
+    """
+    item = request.GET.get("item")
+    size = request.GET.get("size")
+    height = request.GET.get("height")
+
+    qs = Stock.objects.filter(item_id=item)
+
+    if size:
+        qs = qs.filter(size=size)
+    if height:
+        qs = qs.filter(height=height)
+
+    total = qs.aggregate(quantity_total=Sum("quantity"))["quantity_total"] or 0
+    return Response({"available": total})

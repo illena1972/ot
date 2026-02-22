@@ -8,41 +8,29 @@ export default function StockList() {
   const [showModal, setShowModal] = useState(false);
   const [editingStock, setEditingStock] = useState(null);
   const [stockToDelete, setStockToDelete] = useState(null);
-
-  // для разных вкладок  "batches" | "summary"
-  const [viewMode, setViewMode] = useState("batches");
-  // all | top | shoes | other
   const [typeFilter, setTypeFilter] = useState("all");
 
-
+  // UI настройки типов одежды (как в старом)
   const CLOTHES_TYPE_UI = {
-  top: {
-    bg: "bg-blue-100",
-    text: "text-blue-600",
-    icon: "fas fa-tshirt",
-    label: "Верхняя одежда",
-  },
-  shoes: {
-    bg: "bg-green-100",
-    text: "text-green-600",
-    icon: "fas fa-shoe-prints",
-    label: "Обувь",
-  },
-  other: {
-    bg: "bg-purple-100",
-    text: "text-purple-600",
-    icon: "fas fa-box",
-    label: "Безразмерная",
-  },
-};
-
-const TYPE_FILTERS = [
-  { value: "all", label: "Все" },
-  { value: "top", label: "Верхняя одежда" },
-  { value: "shoes", label: "Обувь" },
-  { value: "other", label: "Без размера" },
-];
-
+    top: {
+      bg: "bg-blue-100",
+      text: "text-blue-600",
+      icon: "fas fa-tshirt",
+      label: "Верхняя одежда",
+    },
+    shoes: {
+      bg: "bg-green-100",
+      text: "text-green-600",
+      icon: "fas fa-shoe-prints",
+      label: "Обувь",
+    },
+    other: {
+      bg: "bg-purple-100",
+      text: "text-purple-600",
+      icon: "fas fa-box",
+      label: "Безразмерная",
+    },
+  };
 
   const loadStocks = () => {
     api.get("stocks/")
@@ -50,381 +38,308 @@ const TYPE_FILTERS = [
       .catch(err => console.error(err));
   };
 
-  const handleEdit = (stock) => {
-  setEditingStock(stock);
-  };
-
-  const handleDeleteStock = async () => {
-  try {
-    await api.delete(`stocks/${stockToDelete.id}/`);
-    setStockToDelete(null);
-    loadStocks(); // обновляем таблицу
-  } catch (err) {
-    console.error(err);
-    alert("Ошибка при удалении партии");
-  }
-  };
-
   useEffect(() => {
     loadStocks();
   }, []);
 
+  const handleEdit = (stock) => {
+    setEditingStock(stock);
+  };
+
+  const handleDeleteStock = async () => {
+    try {
+      await api.delete(`stocks/${stockToDelete.id}/`);
+      setStockToDelete(null);
+      loadStocks();
+    } catch (err) {
+      console.error(err);
+      alert("Ошибка при удалении");
+    }
+  };
+
+  // ПРАВИЛЬНОЕ отображение размера (как было раньше)
   const renderSize = (stock) => {
-      if (stock.item_type === "other") {
+
+    // Безразмерная одежда
+    if (stock.item_type === "other") {
+      return (
+        <span className="text-gray-400 font-semibold">
+          —
+        </span>
+      );
+    }
+
+    // Верхняя одежда → размер / рост
+    if (stock.item_type === "top") {
+      if (stock.size && stock.height) {
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 whitespace-nowrap">
-            Без размера
+          <span className="font-semibold">
+            {stock.size} / {stock.height}
           </span>
         );
       }
+      return <span className="text-gray-400">—</span>;
+    }
 
-      if (stock.item_type === "top") {
-        if (stock.size && stock.height) {
-          return `${stock.size} / ${stock.height}`;
-        }
-        return "—";
-      }
+    // Обувь → только размер
+    if (stock.item_type === "shoes") {
+      return (
+        <span className="font-semibold">
+          {stock.size ?? "—"}
+        </span>
+      );
+    }
 
-      // shoes
-      return stock.size ?? "—";
-    };
+    return "—";
+  };
 
-
-
-    // -------------------------
-    // АГРЕГАЦИЯ ОСТАТКОВ
-    // -------------------------
-    const stockSummaryMap = {};
-
-
-
-    stocks.forEach(stock => {
-      const key = `${stock.item}-${stock.size ?? "none"}-${stock.height ?? "none"}`;
-
-      if (!stockSummaryMap[key]) {
-         stockSummaryMap[key] = {
-          item_name: stock.item_name,
-          item_type: stock.item_type,
-          size: stock.size,
-          height: stock.height,
-          quantity: 0,
-        };
-      }
-
-
-
-      stockSummaryMap[key].quantity += stock.quantity;
-    });
-
-    const stockSummary = Object.values(stockSummaryMap).sort((a, b) => {
-      if (a.item_name !== b.item_name) {
-        return a.item_name.localeCompare(b.item_name, "ru");
-      }
-      return (a.size ?? 0) - (b.size ?? 0);
-    });
-
-    const filteredStocks =
+  // фильтр
+  const filteredStocks =
     typeFilter === "all"
-    ? stocks
-    : stocks.filter(s => s.item_type === typeFilter);
+      ? stocks
+      : stocks.filter(s => s.item_type === typeFilter);
 
-    const filteredStockSummary =
-    typeFilter === "all"
-    ? stockSummary
-    : stockSummary.filter(row => row.item_type === typeFilter);
+  return (
+    <div>
 
-    return (
-  <div>
-    {/* Заголовок + кнопка */}
-    <div className="flex justify-between items-center mb-6">
-      <h2 className="text-2xl font-bold text-gray-800">
-        Остатки на складе
-      </h2>
+      {/* Заголовок */}
+      <div className="flex justify-between items-center mb-6">
 
-      <button
-        onClick={() => setShowModal(true)}
-        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold"
-      >
-        + Добавить партию
-      </button>
-    </div>
+        <h2 className="text-2xl font-bold text-gray-800">
+          Остатки на складе
+        </h2>
 
-    {/* Переключатель режимов */}
-    <div className="flex space-x-2 mb-4">
-      <button
-        onClick={() => setViewMode("batches")}
-        className={`px-4 py-2 rounded-lg ${
-          viewMode === "batches"
-            ? "bg-blue-600 text-white"
-            : "border"
-        }`}
-      >
-        Партии
-      </button>
+        <button
+          onClick={() => setShowModal(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold"
+        >
+          + Добавить
+        </button>
 
-      <button
-        onClick={() => setViewMode("summary")}
-        className={`px-4 py-2 rounded-lg ${
-          viewMode === "summary"
-            ? "bg-blue-600 text-white"
-            : "border"
-        }`}
-      >
-        Остатки
-      </button>
-    </div>
+      </div>
 
+      {/* Фильтры */}
+      <div className="flex flex-wrap gap-2 mb-4">
 
-    <div className="flex flex-wrap gap-2 mb-4">
-          {/* Все */}
+        <button
+          onClick={() => setTypeFilter("all")}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition
+          ${
+            typeFilter === "all"
+              ? "bg-gray-800 text-white"
+              : "bg-white text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          <i className="fas fa-layer-group"></i>
+          Все
+        </button>
+
+        {Object.entries(CLOTHES_TYPE_UI).map(([key, ui]) => (
+
           <button
-            onClick={() => setTypeFilter("all")}
+            key={key}
+            onClick={() => setTypeFilter(key)}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition
-              ${
-                typeFilter === "all"
-                  ? "bg-gray-800 text-white"
-                  : "bg-white text-gray-600 hover:bg-gray-100"
-              }`}
+            ${
+              typeFilter === key
+                ? `${ui.bg} ${ui.text} border-transparent`
+                : "bg-white text-gray-600 hover:bg-gray-100"
+            }`}
           >
-            <i className="fas fa-layer-group"></i>
-            Все
+
+            <i className={ui.icon}></i>
+            {ui.label}
+
           </button>
 
-          {Object.entries(CLOTHES_TYPE_UI).map(([key, ui]) => (
-            <button
-              key={key}
-              onClick={() => setTypeFilter(key)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition
-                ${
-                  typeFilter === key
-                    ? `${ui.bg} ${ui.text} border-transparent`
-                    : "bg-white text-gray-600 hover:bg-gray-100"
-                }`}
-            >
-              <i className={ui.icon}></i>
-              {ui.label}
-            </button>
-          ))}
-    </div>
+        ))}
 
+      </div>
 
+      {/* Таблица */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
 
+        <div className="overflow-x-auto">
 
+          <table className="w-full">
 
-
-    {/* Контейнер таблиц */}
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="overflow-x-auto">
-
-        {/* ================= ПАРТИИ ================= */}
-        {viewMode === "batches" && (
-          <table className="min-w-full">
             <thead className="bg-gray-50 border-b">
+
               <tr>
+
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase">
                   Наименование
                 </th>
+
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase">
                   Размер
                 </th>
+
                 <th className="px-6 py-4 text-right text-xs font-semibold uppercase">
-                  Количество
+                  Всего на складе
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase">
-                  Дата поступления
-                </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold uppercase">
+
+                <th className="px-6 py-4 text-center text-xs font-semibold uppercase">
                   Действия
                 </th>
+
               </tr>
+
             </thead>
 
             <tbody className="divide-y">
-              {filteredStocks.map(stock => {
+
+              {filteredStocks.length === 0 && (
+
+                <tr>
+
+                  <td colSpan="4" className="text-center py-10 text-gray-400">
+
+                    Нет данных на складе
+
+                  </td>
+
+                </tr>
+
+              )}
+
+              {filteredStocks.map((stock) => {
+
                 const ui = CLOTHES_TYPE_UI[stock.item_type];
 
                 return (
+
                   <tr key={stock.id} className="hover:bg-gray-50">
-                    {/* Наименование + иконка */}
+
+                    {/* Наименование + значок */}
                     <td className="px-6 py-4">
+
                       <div className="flex items-center space-x-3">
-                        <div
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center ${ui?.bg}`}
-                        >
+
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${ui?.bg}`}>
+
                           <i className={`${ui?.icon} ${ui?.text}`}></i>
+
                         </div>
 
-                        <div className="font-semibold text-gray-800">
+                        <span className="font-semibold text-gray-800">
+
                           {stock.item_name}
-                        </div>
+
+                        </span>
+
                       </div>
+
                     </td>
 
-
-
+                    {/* Размер */}
                     <td className="px-6 py-4">
-                     {renderSize(stock)}
+
+                      {renderSize(stock)}
+
                     </td>
 
-
-
-
-
+                    {/* Количество */}
                     <td className="px-6 py-4 text-right font-semibold">
+
                       {stock.quantity}
+
                     </td>
 
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {stock.date_income}
-                    </td>
-
+                    {/* Действия */}
                     <td className="px-6 py-4">
-                      <div className="flex justify-end items-center space-x-3">
+
+                      <div className="flex justify-center gap-2">
+
                         <button
-                          className="p-2 rounded-lg hover:bg-blue-50 text-blue-600"
                           onClick={() => handleEdit(stock)}
-                          title="Редактировать"
+                          className="px-3 py-1 text-sm rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200"
                         >
                           <i className="fas fa-edit"></i>
                         </button>
 
                         <button
-                          className="p-2 rounded-lg hover:bg-red-50 text-red-600"
                           onClick={() => setStockToDelete(stock)}
-                          title="Удалить"
+                          className="px-3 py-1 text-sm rounded-lg bg-red-100 text-red-700 hover:bg-red-200"
                         >
                           <i className="fas fa-trash"></i>
                         </button>
+
                       </div>
+
                     </td>
+
                   </tr>
+
                 );
+
               })}
 
-              {filteredStocks.length === 0 && (
-                <tr>
-                  <td colSpan="5" className="text-center py-8 text-gray-500">
-                    Нет данных
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-
-        {/* ================= ОСТАТКИ ================= */}
-        {viewMode === "summary" && (
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase">
-                  Наименование
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase">
-                  Размер
-                </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold uppercase">
-                  Всего на складе
-                </th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y">
-              {filteredStockSummary.map((row, index) => {
-                const ui = CLOTHES_TYPE_UI[row.item_type];
-
-                return (
-                  <tr key={index} className="hover:bg-gray-50">
-                    {/* Наименование */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-3">
-                        <div
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center ${ui?.bg}`}
-                        >
-                          <i className={`${ui?.icon} ${ui?.text}`}></i>
-                        </div>
-
-                        <span className="font-semibold text-gray-800">
-                          {row.item_name}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Размер */}
-                    <td className="px-6 py-4">
-                       {renderSize(row)}
-                    </td>
-
-                    {/* Количество */}
-                    <td className="px-6 py-4 text-right font-semibold">
-                      {row.quantity}
-                    </td>
-                  </tr>
-                );
-              })}
             </tbody>
 
           </table>
-        )}
+
+        </div>
 
       </div>
+
+      {/* Модалки */}
+
+      {showModal && (
+        <StockModal onClose={() => setShowModal(false)}>
+          <StockForm
+            onSuccess={() => {
+              setShowModal(false);
+              loadStocks();
+            }}
+          />
+        </StockModal>
+      )}
+
+      {editingStock && (
+        <StockModal onClose={() => setEditingStock(null)}>
+          <StockForm
+            stock={editingStock}
+            onSuccess={() => {
+              setEditingStock(null);
+              loadStocks();
+            }}
+          />
+        </StockModal>
+      )}
+
+      {stockToDelete && (
+        <StockModal onClose={() => setStockToDelete(null)}>
+
+          <h2 className="text-xl font-bold mb-4">
+            Удалить запись
+          </h2>
+
+          <p className="mb-6">
+            Удалить <strong>{stockToDelete.item_name}</strong>?
+          </p>
+
+          <div className="flex justify-end gap-4">
+
+            <button
+              onClick={() => setStockToDelete(null)}
+              className="px-4 py-2 border rounded-lg"
+            >
+              Отмена
+            </button>
+
+            <button
+              onClick={handleDeleteStock}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg"
+            >
+              Удалить
+            </button>
+
+          </div>
+
+        </StockModal>
+      )}
+
     </div>
-
-    {/* ================= МОДАЛКИ ================= */}
-    {showModal && (
-      <StockModal onClose={() => setShowModal(false)}>
-        <StockForm
-          onSuccess={() => {
-            setShowModal(false);
-            loadStocks();
-          }}
-        />
-      </StockModal>
-    )}
-
-    {editingStock && (
-      <StockModal onClose={() => setEditingStock(null)}>
-        <StockForm
-          stock={editingStock}
-          onSuccess={() => {
-            setEditingStock(null);
-            loadStocks();
-          }}
-        />
-      </StockModal>
-    )}
-
-    {stockToDelete && (
-      <StockModal onClose={() => setStockToDelete(null)}>
-        <h2 className="text-xl font-bold mb-4">
-          Удалить партию
-        </h2>
-
-        <p className="text-gray-600 mb-6">
-          Вы уверены, что хотите удалить партию одежды{" "}
-          <strong>{stockToDelete.item_name}</strong>
-          {stockToDelete.size && <> (размер {stockToDelete.size})</>}
-          ?
-        </p>
-
-        <div className="flex justify-end space-x-4">
-          <button
-            onClick={() => setStockToDelete(null)}
-            className="px-4 py-2 rounded-lg border"
-          >
-            Отмена
-          </button>
-
-          <button
-            onClick={handleDeleteStock}
-            className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
-          >
-            Удалить
-          </button>
-        </div>
-      </StockModal>
-    )}
-  </div>
-);
-
+  );
 }

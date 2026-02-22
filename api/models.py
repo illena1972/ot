@@ -131,7 +131,7 @@ class ClothesStockBatch(models.Model):
 
     quantity = models.PositiveIntegerField("Количество на складе")
 
-    date_income = models.DateField("Дата поступления", default=timezone.now)
+    #date_income = models.DateField("Дата поступления", default=timezone.now)
 
     note = models.TextField("Примечание", blank=True, null=True)
 
@@ -258,6 +258,23 @@ class ClothesIssueItem(models.Model):
             )
 
         super().save(*args, **kwargs)
+
+
+
+
+class Stock(models.Model):
+    item = models.ForeignKey("ClothesItem", on_delete=models.CASCADE)
+    size = models.IntegerField(null=True, blank=True)
+    height = models.IntegerField(null=True, blank=True)
+    quantity = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ("item", "size", "height")
+
+
+
+
+
 
 
 
