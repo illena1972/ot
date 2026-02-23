@@ -13,6 +13,7 @@ import ClothesList from "./components/clothes/ClothesList";
 import StockList from "./components/stocks/StockList";
 import IssueCreate from "./components/issues/IssueCreate";
 import EmployeeReportPage from "./components/reports/EmployeeReportPage";
+import OrderReportPage from "./components/orders/OrderReportPage";
 
 
 
@@ -29,6 +30,7 @@ function App() {
         if (page === "stocks") return <StockList />;
         if (page === "issues") return <IssueCreate />;
         if (page === "employee-report") return <EmployeeReportPage />;
+        if (page === "order-report") return <OrderReportPage />;
 
       }}
     </Layout>

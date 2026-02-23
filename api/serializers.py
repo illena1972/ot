@@ -242,6 +242,8 @@ class EmployeeIssueReportSerializer(serializers.ModelSerializer):
 
         return "active"
 
+
+# склад
 class StockSerializer(serializers.ModelSerializer):
     item_name = serializers.CharField(source="item.name", read_only=True)
     item_type = serializers.CharField(source="item.type", read_only=True)
@@ -256,4 +258,43 @@ class StockSerializer(serializers.ModelSerializer):
             "size",
             "height",
             "quantity",
+        ]
+
+ # отчет для заказа (список)
+class OrderReportSerializer(serializers.Serializer):
+
+    item_id = serializers.IntegerField()
+    item_name = serializers.CharField()
+
+    item_type = serializers.CharField()
+
+    size = serializers.CharField(allow_null=True)
+    height = serializers.IntegerField(allow_null=True)
+
+    total_quantity = serializers.IntegerField()
+
+ # отчет для заказа (детализация)
+
+class OrderReportDetailSerializer(serializers.ModelSerializer):
+
+    employee_name = serializers.SerializerMethodField()
+
+    date_received = serializers.DateField(
+        source="issue.date_received"
+    )
+
+    def get_employee_name(self, obj):
+        emp = obj.issue.employee
+        return f"{emp.last_name} {emp.first_name} {emp.middle_name}"
+
+    class Meta:
+        model = ClothesIssueItem
+        fields = [
+            "id",
+            "employee_name",
+            "quantity",
+            "size",
+            "height",
+            "date_received",
+            "date_expire",
         ]

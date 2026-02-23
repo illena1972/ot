@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../../api/api";
 import EmployeeReportTable from "./EmployeeReportTable";
-import Modal from "./Modal"; // путь к Modal.jsx
+import Modal from "../ui/Modal";// путь к Modal.jsx
 
 
 export default function EmployeeReportPage() {
