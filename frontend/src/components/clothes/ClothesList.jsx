@@ -181,13 +181,13 @@ export default function ClothesList() {
                 </p>
 
                 <div className="flex justify-end space-x-4">
-                  <button onClick={() => setСlothesToDelete(null)}
+                  <button onClick={() => setClothesToDelete(null)}
                     className="px-4 py-2 rounded-lg border"
                   >
                     Отмена
                   </button>
 
-                  <button onClick={deleteСlothes}
+                  <button onClick={deleteClothes}
                     className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
                   >
                     Удалить

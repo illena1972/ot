@@ -34,6 +34,7 @@ export default function EmployeeReportTable({
               <th className="p-2">Дата выдачи</th>
               <th className="p-2">Дата списания</th>
               <th className="p-2">Статус</th>
+              <th className="p-2">Действия</th>
             </tr>
           </thead>
 
@@ -42,7 +43,7 @@ export default function EmployeeReportTable({
             {items.length === 0 ? (
 
               <tr>
-                <td colSpan="7" className="text-center p-4 text-gray-500">
+                <td colSpan="8" className="text-center p-4 text-gray-500">
                   Нет данных
                 </td>
               </tr>
@@ -80,18 +81,34 @@ export default function EmployeeReportTable({
                       {item.date_expire || "—"}
                     </td>
 
-                    <td className="p-2 text-center">
-
+                   <td className="p-2 text-center">
                       {item.status === "expired" ? (
-                        <button onClick={() => onWriteOff(item.id)} className="text-red-600 underline">
-                          Списать
-                        </button>
+                        <span className="text-red-600 font-medium">
+                          Просрочено
+                        </span>
                       ) : (
                         <span className="text-green-600">
                           Выдано
                         </span>
                       )}
+                    </td>
 
+                    <td className="p-2 text-center">
+                      <button
+                        onClick={() => onEdit(item)}
+                        className="text-blue-600 underline mr-3"
+                      >
+                        Редактировать
+                      </button>
+
+                      {item.status === "expired" && (
+                        <button
+                          onClick={() => onWriteOff(item.id)}
+                          className="text-red-600 underline"
+                        >
+                          Списать
+                        </button>
+                      )}
                     </td>
 
                   </tr>
