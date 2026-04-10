@@ -5,7 +5,8 @@ export default function EmployeeReportTable({
   employee,
   items,
   loading,
-  onWriteOff
+  onWriteOff,
+  onEdit
 }) {
 
 
@@ -81,7 +82,7 @@ export default function EmployeeReportTable({
                       {item.date_expire || "—"}
                     </td>
 
-                   <td className="p-2 text-center">
+                  <td className="p-2 text-center">
                       {item.status === "expired" ? (
                         <span className="text-red-600 font-medium">
                           Просрочено
@@ -93,18 +94,20 @@ export default function EmployeeReportTable({
                       )}
                     </td>
 
-                    <td className="p-2 text-center">
-                      <button
-                        onClick={() => onEdit(item)}
-                        className="text-blue-600 underline mr-3"
-                      >
-                        Редактировать
-                      </button>
+                   <td className="p-2 text-center">
+                      {item.status !== "expired" && (
+                        <button
+                          onClick={() => onEdit(item)}
+                          className="btn-edit"
+                        >
+                          Редактировать
+                        </button>
+                      )}
 
                       {item.status === "expired" && (
                         <button
                           onClick={() => onWriteOff(item.id)}
-                          className="text-red-600 underline"
+                          className="btn-danger"
                         >
                           Списать
                         </button>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../../api/api";
 import EmployeeReportTable from "./EmployeeReportTable";
 import Modal from "../ui/Modal";// путь к Modal.jsx
+import EditIssueForm from "./EditIssueForm";
 
 
 export default function EmployeeReportPage() {
@@ -16,6 +17,8 @@ export default function EmployeeReportPage() {
   const [reportItems, setReportItems] = useState([]);
 
   const [loading, setLoading] = useState(false);
+
+  const [editItem, setEditItem] = useState(null);
 
   // загрузка подразделений
   useEffect(() => {
@@ -68,6 +71,12 @@ export default function EmployeeReportPage() {
 
     }
   };
+
+
+  const handleEdit = (item) => {
+      setEditItem(item);
+    };
+
 
   const handleWriteOff = async (itemId) => {
 
@@ -188,8 +197,32 @@ export default function EmployeeReportPage() {
               items={reportItems}
               loading={loading}
               onWriteOff={handleWriteOff}
+              onEdit={handleEdit}
             />
           </Modal>
+
+          <Modal
+              isOpen={!!editItem}
+              onClose={() => setEditItem(null)}
+              title="Редактирование выдачи"
+              width="max-w-lg"
+            >
+              {editItem && (
+                <EditIssueForm
+                  item={editItem}
+                  onClose={() => setEditItem(null)}
+                  onSaved={async () => {
+                    if (!selectedEmployee) return;
+
+                    const res = await api.get(`employees/${selectedEmployee.id}/report/`);
+                    setReportItems(res.data.items);
+                    setEditItem(null);
+                  }}
+                />
+              )}
+        </Modal>
+
+
         )}
 
     </div>

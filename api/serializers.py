@@ -204,17 +204,12 @@ class ClothesIssueSerializer(serializers.ModelSerializer):
 
         return issue
 
-
     def update(self, instance, validated_data):
-        old_quantity = instance.quantity
 
+        old_quantity = instance.quantity
         new_quantity = validated_data.get("quantity", instance.quantity)
 
         diff = new_quantity - old_quantity
-
-        from .models import Stock
-        from django.db import transaction
-        from django.db.models import F
 
         with transaction.atomic():
             stock = Stock.objects.select_for_update().get(
@@ -224,23 +219,18 @@ class ClothesIssueSerializer(serializers.ModelSerializer):
             )
 
             if diff > 0:
-                # увеличили выдачу → уменьшаем склад
                 if stock.quantity < diff:
                     raise serializers.ValidationError(
-                        f"Недостаточно на складе. Доступно: {stock.quantity}"
+                        f"Недостаточно на складе '{instance.item}'. Доступно: {stock.quantity}, требуется дополнительно: {diff}"
                     )
                 stock.quantity = F("quantity") - diff
+                stock.save()
 
             elif diff < 0:
-                # уменьшили выдачу → возвращаем на склад
                 stock.quantity = F("quantity") + abs(diff)
+                stock.save()
 
-            stock.save()
-
-            # обновляем поля
             instance.quantity = new_quantity
-            instance.size = validated_data.get("size", instance.size)
-            instance.height = validated_data.get("height", instance.height)
             instance.operation_life_months = validated_data.get(
                 "operation_life_months",
                 instance.operation_life_months
@@ -260,9 +250,12 @@ class StockAvailableSerializer(serializers.Serializer):
 
 # отчет выдачи по сотруднику
 class EmployeeIssueReportSerializer(serializers.ModelSerializer):
+    item = serializers.IntegerField(source="item.id", read_only=True)
+    item_name = serializers.CharField(source="item.name", read_only=True)
+    date_received = serializers.DateField(source="issue.date_received", read_only=True)
 
-    item_name = serializers.CharField(source="item.name")
-    date_received = serializers.DateField(source="issue.date_received")
+    operation_life_months = serializers.IntegerField(read_only=True)
+    note = serializers.CharField(read_only=True, allow_null=True)
 
     status = serializers.SerializerMethodField()
 
@@ -270,17 +263,19 @@ class EmployeeIssueReportSerializer(serializers.ModelSerializer):
         model = ClothesIssueItem
         fields = [
             "id",
+            "item",
             "item_name",
             "quantity",
             "size",
             "height",
             "date_received",
             "date_expire",
+            "operation_life_months",
+            "note",
             "status",
         ]
 
     def get_status(self, obj):
-
         if not obj.date_expire:
             return "active"
 

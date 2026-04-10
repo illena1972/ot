@@ -29,6 +29,8 @@ from django.utils import timezone
 
 import openpyxl
 from django.http import HttpResponse
+from openpyxl import Workbook
+
 
 
 
@@ -175,6 +177,8 @@ class ClothesIssueItemViewSet(ModelViewSet):
     serializer_class = ClothesIssueItemSerializer
 
 
+
+
 # отчет для заказа
 
 @api_view(["GET"])
@@ -278,14 +282,7 @@ def order_report_detail(request):
     return Response(serializer.data)
 
 
-# api/views.py
-from django.utils import timezone
-from django.db.models import Sum
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from django.http import HttpResponse
-from openpyxl import Workbook
-from .models import ClothesIssueItem
+
 
 @api_view(["GET"])
 def order_report_export(request):
