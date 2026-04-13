@@ -9,10 +9,15 @@ export default function EditIssueForm({ item, onClose, onSaved }) {
   const [note, setNote] = useState(item.note || "");
   const [saving, setSaving] = useState(false);
 
+  const [quantityError, setQuantityError] = useState("");
+  const [formError, setFormError] = useState("");
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     setSaving(true);
+    setQuantityError("");
+    setFormError("");
 
     try {
       const res = await api.patch(`issue-items/${item.id}/`, {
@@ -24,14 +29,33 @@ export default function EditIssueForm({ item, onClose, onSaved }) {
       onSaved({
         ...item,
         ...res.data,
-        item_name: item.item_name,
-        date_received: item.date_received,
-        status: item.status,
-        date_expire: item.date_expire,
       });
     } catch (err) {
       console.error(err);
-      alert("Ошибка обновления выдачи");
+
+      const data = err.response?.data;
+
+      if (data) {
+        if (typeof data === "string") {
+          setFormError(data);
+        } else if (data.detail) {
+          setFormError(data.detail);
+        } else {
+          const firstError = Object.values(data)[0];
+          const errorText = Array.isArray(firstError) ? firstError[0] : firstError;
+
+          if (
+            typeof errorText === "string" &&
+            errorText.toLowerCase().includes("недостаточно на складе")
+          ) {
+            setQuantityError(errorText);
+          } else {
+            setFormError(errorText || "Ошибка обновления выдачи");
+          }
+        }
+      } else {
+        setFormError("Ошибка соединения с сервером");
+      }
     } finally {
       setSaving(false);
     }
@@ -43,7 +67,7 @@ export default function EditIssueForm({ item, onClose, onSaved }) {
         <label className="block text-sm font-medium mb-1">
           Наименование
         </label>
-        <div className="border rounded-lg px-3 py-2 bg-gray-50">
+        <div className="w-full border rounded-lg px-3 py-2 bg-gray-50 text-gray-700">
           {item.item_name}
         </div>
       </div>
@@ -56,9 +80,20 @@ export default function EditIssueForm({ item, onClose, onSaved }) {
           type="number"
           min="1"
           value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2"
+          onChange={(e) => {
+            setQuantity(e.target.value);
+            setQuantityError("");
+            setFormError("");
+          }}
+          className={`w-full border rounded-lg px-3 py-2 ${
+            quantityError ? "border-red-500 bg-red-50" : ""
+          }`}
         />
+        {quantityError && (
+          <div className="mt-1 text-sm text-red-600">
+            {quantityError}
+          </div>
+        )}
       </div>
 
       <div>
@@ -69,7 +104,10 @@ export default function EditIssueForm({ item, onClose, onSaved }) {
           type="number"
           min="1"
           value={operationLifeMonths}
-          onChange={(e) => setOperationLifeMonths(e.target.value)}
+          onChange={(e) => {
+            setOperationLifeMonths(e.target.value);
+            setFormError("");
+          }}
           className="w-full border rounded-lg px-3 py-2"
         />
       </div>
@@ -80,11 +118,20 @@ export default function EditIssueForm({ item, onClose, onSaved }) {
         </label>
         <textarea
           value={note}
-          onChange={(e) => setNote(e.target.value)}
+          onChange={(e) => {
+            setNote(e.target.value);
+            setFormError("");
+          }}
           rows="3"
           className="w-full border rounded-lg px-3 py-2"
         />
       </div>
+
+      {formError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {formError}
+        </div>
+      )}
 
       <div className="flex justify-end gap-2 pt-2">
         <button

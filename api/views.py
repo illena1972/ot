@@ -176,6 +176,27 @@ class ClothesIssueItemViewSet(ModelViewSet):
     queryset = ClothesIssueItem.objects.all()
     serializer_class = ClothesIssueItemSerializer
 
+    def destroy(self, request, *args, **kwargs):
+        from django.db import transaction
+        from django.db.models import F
+
+        instance = self.get_object()
+
+        with transaction.atomic():
+            stock, _ = Stock.objects.select_for_update().get_or_create(
+                item=instance.item,
+                size=instance.size,
+                height=instance.height,
+                defaults={"quantity": 0},
+            )
+
+            stock.quantity = F("quantity") + instance.quantity
+            stock.save()
+
+            instance.delete()
+
+        return Response(status=204)
+
 
 
 

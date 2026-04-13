@@ -125,12 +125,15 @@ export default function ClothesList() {
                   </td>
 
                   <td className="px-1 py-4 text-right">
-                    <button onClick={() => setClothesToEdit(cl)} className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 mr-1">
-                         <i className="fas fa-edit"></i>
-                    </button>
-                    <button onClick={() => setClothesToDelete(cl)} className="p-2 rounded-lg hover:bg-red-50 text-red-600 mr-1">
-                         <i className="fas fa-trash"></i>
-                    </button>
+
+                    <div className="flex justify-center gap-2">
+                        <button onClick={() => setClothesToEdit(cl)} className="icon-btn">
+                            <i className="fa-solid fa-pen"></i>
+                        </button>
+                        <button onClick={() => setClothesToDelete(cl)} className="icon-btn-danger">
+                             <i className="fa-regular fa-trash-can"></i>
+                        </button>
+                    </div>
 
                   </td>
                 </tr>

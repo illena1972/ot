@@ -39,6 +39,8 @@ export default function DepartmentList() {
 
   return (
     <div>
+
+
       {/* Заголовок */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
@@ -79,16 +81,16 @@ export default function DepartmentList() {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => setDepartmentToEdit(dep)}
-                        className="p-2 rounded-lg hover:bg-blue-50 text-blue-600"
+                        className="icon-btn"
                       >
-                        <i className="fas fa-edit"></i>
+                        <i className="fa-solid fa-pen"></i>
                       </button>
 
                       <button
                         onClick={() => setDepartmentToDelete(dep)}
-                        className="p-2 rounded-lg hover:bg-red-50 text-red-600"
+                        className="icon-btn-danger"
                       >
-                        <i className="fas fa-trash"></i>
+                        <i className="fa-regular fa-trash-can"></i>
                       </button>
                     </div>
                   </div>
@@ -108,18 +110,6 @@ export default function DepartmentList() {
                 </div>
               ))}
         </div>
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -100,6 +100,25 @@ export default function EmployeeReportPage() {
 
 };
 
+  const handleDelete = async (itemId) => {
+      if (!window.confirm("Удалить выдачу и вернуть позицию на склад?")) {
+        return;
+      }
+
+      try {
+        await api.delete(`issue-items/${itemId}/`);
+
+        if (!selectedEmployee) return;
+
+        const res = await api.get(`employees/${selectedEmployee.id}/report/`);
+        setReportItems(res.data.items);
+
+      } catch (err) {
+        console.error(err);
+        alert("Ошибка удаления");
+      }
+  };
+
 
   return (
 
@@ -186,43 +205,49 @@ export default function EmployeeReportPage() {
 
 
       {selectedEmployee && (
+
+            <Modal
+              isOpen={!!selectedEmployee}
+              onClose={() => setSelectedEmployee(null)}
+              title={`Выдача сотруднику: ${selectedEmployee.last_name} ${selectedEmployee.first_name} ${selectedEmployee.middle_name}`}
+              width="max-w-5xl"
+            >
+              <EmployeeReportTable
+                  employee={selectedEmployee}
+                  items={reportItems}
+                  loading={loading}
+                  onWriteOff={handleWriteOff}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+            </Modal>
+
+
+
+        )}
+
+
+        {editItem && (
           <Modal
-            isOpen={!!selectedEmployee}
-            onClose={() => setSelectedEmployee(null)}
-            title={`Выдача сотруднику: ${selectedEmployee.last_name} ${selectedEmployee.first_name} ${selectedEmployee.middle_name}`}
-            width="max-w-5xl"
+            isOpen={true}
+            onClose={() => setEditItem(null)}
+            title="Редактирование выдачи"
+            width="max-w-lg"
           >
-            <EmployeeReportTable
-              employee={selectedEmployee}
-              items={reportItems}
-              loading={loading}
-              onWriteOff={handleWriteOff}
-              onEdit={handleEdit}
+            <EditIssueForm
+              item={editItem}
+              onClose={() => setEditItem(null)}
+              onSaved={async () => {
+                if (!selectedEmployee) return;
+
+                const res = await api.get(
+                  `employees/${selectedEmployee.id}/report/`
+                );
+                setReportItems(res.data.items);
+                setEditItem(null);
+              }}
             />
           </Modal>
-
-          <Modal
-              isOpen={!!editItem}
-              onClose={() => setEditItem(null)}
-              title="Редактирование выдачи"
-              width="max-w-lg"
-            >
-              {editItem && (
-                <EditIssueForm
-                  item={editItem}
-                  onClose={() => setEditItem(null)}
-                  onSaved={async () => {
-                    if (!selectedEmployee) return;
-
-                    const res = await api.get(`employees/${selectedEmployee.id}/report/`);
-                    setReportItems(res.data.items);
-                    setEditItem(null);
-                  }}
-                />
-              )}
-        </Modal>
-
-
         )}
 
     </div>

@@ -253,16 +253,16 @@ export default function StockList() {
 
                         <button
                           onClick={() => handleEdit(stock)}
-                          className="px-3 py-1 text-sm rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200"
+                          className="icon-btn"
                         >
-                          <i className="fas fa-edit"></i>
+                          <i className="fa-solid fa-pen"></i>
                         </button>
 
                         <button
                           onClick={() => setStockToDelete(stock)}
-                          className="px-3 py-1 text-sm rounded-lg bg-red-100 text-red-700 hover:bg-red-200"
+                          className="icon-btn-danger"
                         >
-                          <i className="fas fa-trash"></i>
+                          <i className="fa-regular fa-trash-can"></i>
                         </button>
 
                       </div>

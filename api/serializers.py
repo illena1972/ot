@@ -162,7 +162,48 @@ class ClothesIssueItemSerializer(serializers.ModelSerializer):
             "operation_life_months",
             "note",
         ]
-        read_only_fields = ["issue"]  # issue будет передаваться при создании через parent serializer
+        read_only_fields = ["issue"]
+
+    def update(self, instance, validated_data):
+        from django.db import transaction
+        from django.db.models import F
+        from .models import Stock
+
+        old_quantity = instance.quantity
+        new_quantity = validated_data.get("quantity", instance.quantity)
+
+        diff = new_quantity - old_quantity
+
+        with transaction.atomic():
+            stock = Stock.objects.select_for_update().get(
+                item=instance.item,
+                size=instance.size,
+                height=instance.height
+            )
+
+            if diff > 0:
+                if stock.quantity < diff:
+                    raise serializers.ValidationError(
+                        f"Недостаточно на складе '{instance.item}'. "
+                        f"Доступно: {stock.quantity}, требуется дополнительно: {diff}"
+                    )
+                stock.quantity = F("quantity") - diff
+                stock.save()
+
+            elif diff < 0:
+                stock.quantity = F("quantity") + abs(diff)
+                stock.save()
+
+            instance.quantity = new_quantity
+            instance.operation_life_months = validated_data.get(
+                "operation_life_months",
+                instance.operation_life_months
+            )
+            instance.note = validated_data.get("note", instance.note)
+
+            instance.save()
+
+        return instance
 
 
 class ClothesIssueSerializer(serializers.ModelSerializer):
