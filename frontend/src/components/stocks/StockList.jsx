@@ -100,246 +100,166 @@ export default function StockList() {
       : stocks.filter(s => s.item_type === typeFilter);
 
   return (
-    <div>
+  <div>
+    {/* Заголовок */}
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+      <h2 className="text-3xl font-bold text-gray-800">
+        Остатки на складе
+      </h2>
 
-      {/* Заголовок */}
-      <div className="flex justify-between items-center mb-6">
+      <button
+        onClick={() => setShowModal(true)}
+        className="mt-4 sm:mt-0 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold text-base"
+      >
+        + Добавить
+      </button>
+    </div>
 
-        <h2 className="text-2xl font-bold text-gray-800">
-          Остатки на складе
-        </h2>
+    {/* Фильтр */}
+    <div className="flex flex-wrap gap-2 mb-5">
+      <button
+        onClick={() => setTypeFilter("all")}
+        className={`px-4 py-2 rounded-full text-sm font-semibold border transition ${
+          typeFilter === "all"
+            ? "bg-gray-800 text-white"
+            : "bg-white text-gray-600 hover:bg-gray-100"
+        }`}
+      >
+        Все
+      </button>
 
+      {Object.entries(CLOTHES_TYPE_UI).map(([key, ui]) => (
         <button
-          onClick={() => setShowModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold"
-        >
-          + Добавить
-        </button>
-
-      </div>
-
-      {/* Фильтры */}
-      <div className="flex flex-wrap gap-2 mb-4">
-
-        <button
-          onClick={() => setTypeFilter("all")}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition
-          ${
-            typeFilter === "all"
-              ? "bg-gray-800 text-white"
+          key={key}
+          onClick={() => setTypeFilter(key)}
+          className={`px-4 py-2 rounded-full text-sm font-semibold border transition ${
+            typeFilter === key
+              ? `${ui.bg} ${ui.text} border-transparent`
               : "bg-white text-gray-600 hover:bg-gray-100"
           }`}
         >
-          <i className="fas fa-layer-group"></i>
-          Все
+          <i className={`${ui.icon} mr-2`}></i>
+          {ui.label}
         </button>
+      ))}
+    </div>
 
-        {Object.entries(CLOTHES_TYPE_UI).map(([key, ui]) => (
+    {/* Таблица */}
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead className="bg-gray-50">
+            <tr className="text-gray-500 text-sm uppercase tracking-wide">
+              <th className="px-6 py-4 font-semibold">Наименование</th>
+              <th className="px-6 py-4 font-semibold">Размер</th>
+              <th className="px-6 py-4 text-right font-semibold">Количество</th>
+              <th className="px-6 py-4 text-right font-semibold">Действия</th>
+            </tr>
+          </thead>
 
-          <button
-            key={key}
-            onClick={() => setTypeFilter(key)}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition
-            ${
-              typeFilter === key
-                ? `${ui.bg} ${ui.text} border-transparent`
-                : "bg-white text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-
-            <i className={ui.icon}></i>
-            {ui.label}
-
-          </button>
-
-        ))}
-
-      </div>
-
-      {/* Таблица */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-
-        <div className="overflow-x-auto">
-
-          <table className="w-full">
-
-            <thead className="bg-gray-50 border-b">
-
+          <tbody className="divide-y divide-gray-100">
+            {filteredStocks.length === 0 && (
               <tr>
-
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase">
-                  Наименование
-                </th>
-
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase">
-                  Размер
-                </th>
-
-                <th className="px-6 py-4 text-right text-xs font-semibold uppercase">
-                  Всего на складе
-                </th>
-
-                <th className="px-6 py-4 text-center text-xs font-semibold uppercase">
-                  Действия
-                </th>
-
+                <td colSpan="4" className="text-center py-10 text-gray-400">
+                  Нет данных на складе
+                </td>
               </tr>
+            )}
 
-            </thead>
+            {filteredStocks.map((stock) => {
+              const ui = CLOTHES_TYPE_UI[stock.item_type];
 
-            <tbody className="divide-y">
+              return (
+                <tr key={stock.id} className="hover:bg-gray-50 transition">
+                  {/* Наименование */}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${ui?.bg}`}>
+                        <i className={`${ui?.icon} ${ui?.text} text-lg`}></i>
+                      </div>
 
-              {filteredStocks.length === 0 && (
-
-                <tr>
-
-                  <td colSpan="4" className="text-center py-10 text-gray-400">
-
-                    Нет данных на складе
-
+                      <span className="font-semibold text-gray-800 text-base">
+                        {stock.item_name}
+                      </span>
+                    </div>
                   </td>
 
+                  {/* Размер */}
+                  <td className="px-6 py-4 text-gray-600 text-base">
+                    {renderSize(stock)}
+                  </td>
+
+                  {/* Количество */}
+                  <td className="px-6 py-4 text-right font-semibold text-gray-800">
+                    {stock.quantity}
+                  </td>
+
+                  {/* Действия */}
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => handleEdit(stock)} className="icon-btn">
+                        <i className="fa-solid fa-pen"></i>
+                      </button>
+
+                      <button onClick={() => setStockToDelete(stock)} className="icon-btn-danger">
+                        <i className="fa-regular fa-trash-can"></i>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-
-              )}
-
-              {filteredStocks.map((stock) => {
-
-                const ui = CLOTHES_TYPE_UI[stock.item_type];
-
-                return (
-
-                  <tr key={stock.id} className="hover:bg-gray-50">
-
-                    {/* Наименование + значок */}
-                    <td className="px-6 py-4">
-
-                      <div className="flex items-center space-x-3">
-
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${ui?.bg}`}>
-
-                          <i className={`${ui?.icon} ${ui?.text}`}></i>
-
-                        </div>
-
-                        <span className="font-semibold text-gray-800">
-
-                          {stock.item_name}
-
-                        </span>
-
-                      </div>
-
-                    </td>
-
-                    {/* Размер */}
-                    <td className="px-6 py-4">
-
-                      {renderSize(stock)}
-
-                    </td>
-
-                    {/* Количество */}
-                    <td className="px-6 py-4 text-right font-semibold">
-
-                      {stock.quantity}
-
-                    </td>
-
-                    {/* Действия */}
-                    <td className="px-6 py-4">
-
-                      <div className="flex justify-center gap-2">
-
-                        <button
-                          onClick={() => handleEdit(stock)}
-                          className="icon-btn"
-                        >
-                          <i className="fa-solid fa-pen"></i>
-                        </button>
-
-                        <button
-                          onClick={() => setStockToDelete(stock)}
-                          className="icon-btn-danger"
-                        >
-                          <i className="fa-regular fa-trash-can"></i>
-                        </button>
-
-                      </div>
-
-                    </td>
-
-                  </tr>
-
-                );
-
-              })}
-
-            </tbody>
-
-          </table>
-
-        </div>
-
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-
-      {/* Модалки */}
-
-      {showModal && (
-        <StockModal onClose={() => setShowModal(false)}>
-          <StockForm
-            onSuccess={() => {
-              setShowModal(false);
-              loadStocks();
-            }}
-          />
-        </StockModal>
-      )}
-
-      {editingStock && (
-        <StockModal onClose={() => setEditingStock(null)}>
-          <StockForm
-            stock={editingStock}
-            onSuccess={() => {
-              setEditingStock(null);
-              loadStocks();
-            }}
-          />
-        </StockModal>
-      )}
-
-      {stockToDelete && (
-        <StockModal onClose={() => setStockToDelete(null)}>
-
-          <h2 className="text-xl font-bold mb-4">
-            Удалить запись
-          </h2>
-
-          <p className="mb-6">
-            Удалить <strong>{stockToDelete.item_name}</strong>?
-          </p>
-
-          <div className="flex justify-end gap-4">
-
-            <button
-              onClick={() => setStockToDelete(null)}
-              className="px-4 py-2 border rounded-lg"
-            >
-              Отмена
-            </button>
-
-            <button
-              onClick={handleDeleteStock}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg"
-            >
-              Удалить
-            </button>
-
-          </div>
-
-        </StockModal>
-      )}
-
     </div>
-  );
+
+    {/* Модалки */}
+    {showModal && (
+      <StockModal onClose={() => setShowModal(false)}>
+        <StockForm onSuccess={() => {
+          setShowModal(false);
+          loadStocks();
+        }} />
+      </StockModal>
+    )}
+
+    {editingStock && (
+      <StockModal onClose={() => setEditingStock(null)}>
+        <StockForm stock={editingStock} onSuccess={() => {
+          setEditingStock(null);
+          loadStocks();
+        }} />
+      </StockModal>
+    )}
+
+    {stockToDelete && (
+      <StockModal onClose={() => setStockToDelete(null)}>
+        <h2 className="text-2xl font-bold mb-4">
+          Удалить запись
+        </h2>
+
+        <p className="text-base text-gray-600 mb-6">
+          Удалить <strong>{stockToDelete.item_name}</strong>?
+        </p>
+
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={() => setStockToDelete(null)}
+            className="px-5 py-3 rounded-xl border border-gray-300 hover:bg-gray-50"
+          >
+            Отмена
+          </button>
+
+          <button
+            onClick={handleDeleteStock}
+            className="px-5 py-3 rounded-xl bg-red-600 text-white hover:bg-red-700"
+          >
+            Удалить
+          </button>
+        </div>
+      </StockModal>
+    )}
+  </div>
+);
 }

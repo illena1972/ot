@@ -11,9 +11,7 @@ export default function OrderReportDetail({ item }) {
   }, [item]);
 
   const loadData = async () => {
-
     try {
-
       setLoading(true);
 
       const params = {
@@ -22,86 +20,102 @@ export default function OrderReportDetail({ item }) {
         height: item.height,
       };
 
-      const res = await api.get(
-        "reports/order/detail/",
-        { params }
-      );
+      const res = await api.get("reports/order/detail/", { params });
 
-      setRows(res.data);
+      const data = Array.isArray(res.data)
+        ? res.data
+        : res.data.results || [];
+
+      setRows(data);
 
     } catch (err) {
-
       console.error(err);
-
+      setRows([]);
     } finally {
-
       setLoading(false);
-
     }
-
   };
 
-  if (loading)
-    return <div>Загрузка...</div>;
+  if (loading) {
+    return (
+      <div className="py-10 text-center text-gray-400">
+        Загрузка...
+      </div>
+    );
+  }
+
+  if (!rows.length) {
+    return (
+      <div className="py-10 text-center text-gray-400">
+        Нет данных
+      </div>
+    );
+  }
 
   return (
+    <div className="space-y-4">
 
-    <table className="w-full">
+      {/* Заголовок блока */}
+      <div className="text-base text-gray-600">
+        Сотрудники, у которых выдана эта позиция
+      </div>
 
-      <thead>
+      {/* Таблица */}
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
 
-        <tr className="bg-gray-50">
+          <table className="w-full text-left">
 
-          <th className="p-3 text-left">
-            Сотрудник
-          </th>
+            <thead className="bg-gray-50">
+              <tr className="text-gray-500 text-sm uppercase tracking-wide">
+                <th className="px-6 py-4 font-semibold">Сотрудник</th>
+                <th className="px-6 py-4 text-center font-semibold">Кол-во</th>
+                <th className="px-6 py-4 text-center font-semibold">Дата выдачи</th>
+                <th className="px-6 py-4 text-center font-semibold">Дата окончания</th>
+              </tr>
+            </thead>
 
-          <th className="p-3 text-center">
-            Количество
-          </th>
+            <tbody className="divide-y divide-gray-100">
 
-          <th className="p-3 text-center">
-            Дата выдачи
-          </th>
+              {rows.map((row) => (
+                <tr key={row.id} className="hover:bg-gray-50 transition">
 
-          <th className="p-3 text-center">
-            Дата окончания
-          </th>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
 
-        </tr>
+                      <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i className="fa-solid fa-user text-blue-600 text-sm"></i>
+                      </div>
 
-      </thead>
+                      <span className="font-semibold text-gray-800 text-base">
+                        {row.employee_name}
+                      </span>
 
-      <tbody>
+                    </div>
+                  </td>
 
-        {rows.map(row => (
+                  <td className="px-6 py-4 text-center text-gray-600 text-base">
+                    {row.quantity}
+                  </td>
 
-          <tr key={row.id} className="border-b">
+                  <td className="px-6 py-4 text-center text-gray-600 text-base">
+                    {row.date_received}
+                  </td>
 
-            <td className="p-3">
-              {row.employee_name}
-            </td>
+                  <td className="px-6 py-4 text-center text-gray-600 text-base">
+                    {row.date_expire}
+                  </td>
 
-            <td className="p-3 text-center">
-              {row.quantity}
-            </td>
+                </tr>
+              ))}
 
-            <td className="p-3 text-center">
-              {row.date_received}
-            </td>
+            </tbody>
 
-            <td className="p-3 text-center">
-              {row.date_expire}
-            </td>
+          </table>
 
-          </tr>
+        </div>
+      </div>
 
-        ))}
-
-      </tbody>
-
-    </table>
-
+    </div>
   );
-
 }

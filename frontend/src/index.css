@@ -69,3 +69,19 @@ body {
   @apply outline-none border-blue-400 ring-0;
 }
 
+.form-control {
+  @apply w-full px-4 py-3 border border-gray-300 rounded-xl text-base transition bg-white;
+}
+
+.form-control:hover {
+  @apply border-gray-400;
+}
+
+.form-control:focus {
+  @apply outline-none border-blue-400 ring-0;
+}
+
+.form-control::placeholder {
+  @apply text-gray-400;
+}
+

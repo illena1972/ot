@@ -22,9 +22,18 @@ export default function EmployeeReportPage() {
 
   // загрузка подразделений
   useEffect(() => {
-    api.get("departments/")
-      .then(res => setDepartments(res.data));
-  }, []);
+      api.get("departments/")
+        .then(res => {
+          const data = Array.isArray(res.data)
+            ? res.data
+            : res.data.results || [];
+          setDepartments(data);
+        })
+        .catch(err => {
+          console.error(err);
+          setDepartments([]);
+        });
+    }, []);
 
   // загрузка сотрудников
   const loadEmployees = async () => {
@@ -39,7 +48,11 @@ export default function EmployeeReportPage() {
 
     const res = await api.get("employees/", { params });
 
-    setEmployees(res.data);
+    const data = Array.isArray(res.data)
+      ? res.data
+      : res.data.results || [];
+
+    setEmployees(data);
   };
 
   useEffect(() => {
@@ -119,138 +132,130 @@ export default function EmployeeReportPage() {
       }
   };
 
-
   return (
+  <div className="space-y-6">
+    {/* Заголовок */}
+    <div>
+      <h1 className="text-3xl font-bold text-gray-800">
+        Отчет по сотруднику
+      </h1>
+      <p className="text-base text-gray-600 mt-2">
+        Просмотр выданной спецодежды сотрудникам
+      </p>
+    </div>
 
-    <div className="space-y-6">
-
-      {/* заголовок */}
-      <div>
-        <h1 className="text-2xl font-bold">
-          Отчет по сотруднику
-        </h1>
-        <p className="text-gray-500">
-          Просмотр выданной спецодежды сотрудникам
-        </p>
-      </div>
-
-
-      {/* фильтры */}
-      <div className="bg-white rounded-xl shadow p-4 flex gap-4">
-
+    {/* Фильтры */}
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <div className="flex flex-col sm:flex-row gap-4">
         <input
           placeholder="Поиск по ФИО..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="border rounded-lg px-3 py-2"
+          onChange={(e) => setSearch(e.target.value)}
+          className="form-control flex-1"
         />
 
         <select
           value={department}
-          onChange={e => setDepartment(e.target.value)}
-          className="border rounded-lg px-3 py-2"
+          onChange={(e) => setDepartment(e.target.value)}
+          className="form-control sm:max-w-xs"
         >
-          <option value="">
-            Все подразделения
-          </option>
+          <option value="">Все подразделения</option>
 
-          {departments.map(dep => (
+          {departments.map((dep) => (
             <option key={dep.id} value={dep.id}>
               {dep.name}
             </option>
           ))}
-
         </select>
-
       </div>
+    </div>
 
+    {/* Список сотрудников */}
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <div className="space-y-3">
+        {employees.length === 0 && (
+          <div className="text-center py-10 text-gray-400">
+            Сотрудники не найдены
+          </div>
+        )}
 
-      {/* список сотрудников */}
-      <div className="bg-white rounded-xl shadow p-4 space-y-2">
-
-        {employees.map(emp => (
-
+        {employees.map((emp) => (
           <div
             key={emp.id}
             onClick={() => loadReport(emp)}
-            className={`
-              p-3 border rounded-lg cursor-pointer
-              hover:bg-blue-50
-              ${selectedEmployee?.id === emp.id
-                ? "bg-blue-100"
-                : ""}
-            `}
+            className={`p-4 rounded-2xl border cursor-pointer transition ${
+              selectedEmployee?.id === emp.id
+                ? "bg-blue-50 border-blue-200"
+                : "bg-white border-gray-100 hover:bg-gray-50"
+            }`}
           >
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+                <i className="fa-solid fa-user text-blue-600 text-lg"></i>
+              </div>
 
-            <div className="font-medium">
-              {emp.last_name} {emp.first_name} {emp.middle_name}
+              <div className="min-w-0">
+                <div className="font-semibold text-gray-800 text-base">
+                  {emp.last_name} {emp.first_name} {emp.middle_name}
+                </div>
+
+                <div className="text-sm text-gray-500 mt-1">
+                  {emp.department_name}
+                  {" • "}
+                  {emp.position_name}
+                  {" • "}
+                  {emp.service_name}
+                </div>
+              </div>
             </div>
-
-            <div className="text-sm text-gray-500">
-              {emp.department_name}
-              {" • "}
-              {emp.position_name}
-              {" • "}
-              {emp.service_name}
-            </div>
-
           </div>
-
         ))}
-
       </div>
-
-
-      {/* таблица */}
-
-
-      {selectedEmployee && (
-
-            <Modal
-              isOpen={!!selectedEmployee}
-              onClose={() => setSelectedEmployee(null)}
-              title={`Выдача сотруднику: ${selectedEmployee.last_name} ${selectedEmployee.first_name} ${selectedEmployee.middle_name}`}
-              width="max-w-5xl"
-            >
-              <EmployeeReportTable
-                  employee={selectedEmployee}
-                  items={reportItems}
-                  loading={loading}
-                  onWriteOff={handleWriteOff}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-            </Modal>
-
-
-
-        )}
-
-
-        {editItem && (
-          <Modal
-            isOpen={true}
-            onClose={() => setEditItem(null)}
-            title="Редактирование выдачи"
-            width="max-w-lg"
-          >
-            <EditIssueForm
-              item={editItem}
-              onClose={() => setEditItem(null)}
-              onSaved={async () => {
-                if (!selectedEmployee) return;
-
-                const res = await api.get(
-                  `employees/${selectedEmployee.id}/report/`
-                );
-                setReportItems(res.data.items);
-                setEditItem(null);
-              }}
-            />
-          </Modal>
-        )}
-
     </div>
 
-  );
+    {/* Отчет по сотруднику */}
+    {selectedEmployee && (
+      <Modal
+        isOpen={!!selectedEmployee}
+        onClose={() => setSelectedEmployee(null)}
+        title={`Выдача сотруднику: ${selectedEmployee.last_name} ${selectedEmployee.first_name} ${selectedEmployee.middle_name}`}
+        width="max-w-7xl"
+      >
+        <EmployeeReportTable
+          employee={selectedEmployee}
+          items={reportItems}
+          loading={loading}
+          onWriteOff={handleWriteOff}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      </Modal>
+    )}
+
+    {/* Редактирование */}
+    {editItem && (
+      <Modal
+        isOpen={true}
+        onClose={() => setEditItem(null)}
+        title="Редактирование выдачи"
+        width="max-w-lg"
+      >
+        <EditIssueForm
+          item={editItem}
+          onClose={() => setEditItem(null)}
+          onSaved={async () => {
+            if (!selectedEmployee) return;
+
+            const res = await api.get(
+              `employees/${selectedEmployee.id}/report/`
+            );
+            setReportItems(res.data.items);
+            setEditItem(null);
+          }}
+        />
+      </Modal>
+    )}
+  </div>
+);
+
 }

@@ -18,34 +18,28 @@ export default function OrderReportPage() {
 
   // загрузка отчета
   const loadReport = async () => {
+      setLoading(true);
 
-    setLoading(true);
+      try {
+        const params =
+          typeFilter === "all"
+            ? {}
+            : { type: typeFilter };
 
-    try {
+        const res = await api.get("reports/order/", { params });
 
-      const params =
-        typeFilter === "all"
-          ? {}
-          : { type: typeFilter };
+        const data = Array.isArray(res.data)
+          ? res.data
+          : res.data.results || [];
 
-      const res = await api.get(
-        "reports/order/",
-        { params }
-      );
-
-      setItems(res.data);
-
-    } catch (err) {
-
-      console.error("Ошибка загрузки отчета", err);
-
-    } finally {
-
-      setLoading(false);
-
-    }
-
-  };
+        setItems(data);
+      } catch (err) {
+        console.error("Ошибка загрузки отчета", err);
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
 
   useEffect(() => {
@@ -98,49 +92,33 @@ export default function OrderReportPage() {
 
   };
 
-
   return (
 
-    <div className="p-6 space-y-4">
+  <div className="space-y-6">
+    {/* Заголовок */}
 
+    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-800">
+          Отчет для заказа спецодежды
+        </h1>
 
-      {/* HEADER */}
-      <div className="flex justify-between items-center">
-
-        <div>
-          <h1 className="text-2xl font-bold">
-            Отчет для заказа спецодежды
-          </h1>
-
-          <p className="text-gray-500">
-            Спецодежда с оставшимся сроком менее 6 месяцев
-          </p>
-        </div>
-
-
-        {/* КНОПКА EXPORT */}
-        <button
-          onClick={handleExport}
-          className="
-            bg-green-600
-            hover:bg-green-700
-            text-white
-            px-5 py-2.5
-            rounded-lg
-            font-semibold
-            flex items-center gap-2
-            transition
-          "
-        >
-          <i className="fas fa-file-excel"></i>
-          Экспорт в Excel
-        </button>
-
+        <p className="text-base text-gray-600 mt-2">
+          Спецодежда с оставшимся сроком менее 6 месяцев
+        </p>
       </div>
 
+      <button
+        onClick={handleExport}
+        className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl font-semibold text-base transition"
+      >
+        <i className="fa-solid fa-file-excel"></i>
+        Экспорт в Excel
+      </button>
+    </div>
 
-
-      {/* TABLE */}
+    {/* Таблица */}
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
       <OrderReportTable
         items={items}
         loading={loading}
@@ -148,29 +126,21 @@ export default function OrderReportPage() {
         setTypeFilter={setTypeFilter}
         onSelectItem={setSelectedItem}
       />
-
-
-
-      {/* MODAL DETAIL */}
-      {selectedItem && (
-
-        <Modal
-          isOpen={!!selectedItem}
-          onClose={() => setSelectedItem(null)}
-          title={`Выдано сотрудникам: ${selectedItem.item_name}`}
-          width="max-w-5xl"
-        >
-
-          <OrderReportDetail
-            item={selectedItem}
-          />
-
-        </Modal>
-
-      )}
-
     </div>
 
-  );
+    {/* Детализация */}
+    {selectedItem && (
+      <Modal
+        isOpen={!!selectedItem}
+        onClose={() => setSelectedItem(null)}
+        title={`Выдано сотрудникам: ${selectedItem.item_name}`}
+        width="max-w-6xl"
+      >
+        <OrderReportDetail item={selectedItem} />
+      </Modal>
+    )}
+  </div>
+);
+
 
 }
