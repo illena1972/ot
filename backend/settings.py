@@ -25,7 +25,11 @@ SECRET_KEY = 'django-insecure-d5ey8-*^7o&51bz#!s^_z7tev&&7@yobf6i!#t$xvs#wcn&8#2
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "172.23.0.199",
+]
 
 
 # Application definition
@@ -59,7 +63,7 @@ ROOT_URLCONF = 'backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'frontend' / 'dist'],  # React index.html
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -115,25 +119,23 @@ USE_I18N = True
 
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
-STATIC_URL = 'static/'
-
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+# ---------------- STATIC ----------------
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+STATIC_URL = '/static/'
+
+# Откуда брать статические файлы (React build)
+STATICFILES_DIRS = [
+    BASE_DIR / 'frontend' / 'dist',
+]
+
+# Куда собирать collectstatic
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# ---------------- CORS ----------------
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-#Более правильный (чуть позже):
-#CORS_ALLOWED_ORIGINS = [
-#    "http://localhost:5173",
-#]
-STATIC_URL = '/static/'
+# ---------------- DEFAULT PK ----------------
 
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
