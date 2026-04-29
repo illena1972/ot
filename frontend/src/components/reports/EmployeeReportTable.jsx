@@ -24,6 +24,14 @@ export default function EmployeeReportTable({
     );
   }
 
+  const formatDate = (dateStr) => {
+      if (!dateStr) return "—";
+
+      const date = new Date(dateStr);
+
+      return date.toLocaleDateString("ru-RU");
+    };
+
   return (
     <div className="mt-2 overflow-x-auto">
       <table className="w-full text-left">
@@ -62,11 +70,11 @@ export default function EmployeeReportTable({
               </td>
 
               <td className="px-6 py-4 text-center text-gray-600 text-base">
-                {item.date_received}
+                {formatDate(item.date_received)}
               </td>
 
               <td className="px-6 py-4 text-center text-gray-600 text-base">
-                {item.date_expire}
+                {formatDate(item.date_expire)}
               </td>
 
               <td className="px-6 py-4 text-center">
