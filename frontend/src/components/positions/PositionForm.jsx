@@ -1,19 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import api from "../../api/api";
+import AlertModal from "../ui/AlertModal";
 
 function PositionForm({ position, onSuccess }) {
   const [form, setForm] = useState({
     name: position?.name || "",
   });
-
-  useEffect(() => {
-  if (position) {
-    setForm({
-      name: position.name || "",
-    });
-  }
-}, [position]);
-
+  const [errorMessage, setErrorMessage] = useState("");
   const handleChange = (e) => {
     setForm({
       ...form,
@@ -38,15 +31,16 @@ function PositionForm({ position, onSuccess }) {
       console.error(err);
 
       if (err.response?.data?.name) {
-        alert(err.response.data.name[0]);
+        setErrorMessage(err.response.data.name[0]);
       } else {
-        alert("Ошибка при сохранении");
+        setErrorMessage("Ошибка при сохранении");
       }
     }
 };
 
 
   return (
+    <>
       <form onSubmit={handleSubmit} className="space-y-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">
           {position ? "Редактировать должность" : "Добавить должность"}
@@ -81,6 +75,12 @@ function PositionForm({ position, onSuccess }) {
             </div>
        </form>
 
+      <AlertModal
+        title="Ошибка"
+        message={errorMessage}
+        onClose={() => setErrorMessage("")}
+      />
+    </>
 
   );
 }

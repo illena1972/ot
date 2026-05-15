@@ -1,7 +1,4 @@
-import React from "react";
-
 export default function EmployeeReportTable({
-  employee,
   items,
   loading,
   onWriteOff,

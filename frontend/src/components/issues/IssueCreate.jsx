@@ -12,6 +12,7 @@ export default function IssueCreate() {
   const [note, setNote] = useState(""); // общее примечание
   const [items, setItems] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   // Загрузка сотрудников
   useEffect(() => {
@@ -54,7 +55,7 @@ export default function IssueCreate() {
 
       await api.post("issues/", payload);
 
-      alert("Выдача оформлена");
+      setSuccessMessage("Выдача оформлена");
       setEmployee("");
       setDate("");
       setNote("");
@@ -199,6 +200,30 @@ export default function IssueCreate() {
         onClose={() => setShowModal(false)}
         onAdd={handleAddItem}
       />
+    )}
+
+    {successMessage && (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-lg">
+          <h3 className="text-xl font-semibold text-gray-800 mb-3">
+            Готово
+          </h3>
+
+          <p className="text-base text-gray-600 mb-6">
+            {successMessage}
+          </p>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setSuccessMessage("")}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm"
+            >
+              ОК
+            </button>
+          </div>
+        </div>
+      </div>
     )}
 
   </div>

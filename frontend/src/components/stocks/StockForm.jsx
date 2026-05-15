@@ -5,11 +5,6 @@ function StockForm({ stock, onSuccess }) {
   const [items, setItems] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
 
-
-  const getToday = () => {
-      return new Date().toISOString().split("T")[0];
-    };
-
   const [form, setForm] = useState({
   item: stock?.item || "",
   size: stock?.size ?? "",

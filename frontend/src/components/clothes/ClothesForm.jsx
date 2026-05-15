@@ -1,21 +1,13 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import api from "../../api/api";
+import AlertModal from "../ui/AlertModal";
 
 function ClothesForm({ clothes, onSuccess }) {
       const [form, setForm] = useState({
       name: clothes?.name || "",
       type: clothes?.type || "top",
   });
-
-  useEffect(() => {
-  if (clothes) {
-    setForm({
-      name: clothes.name || "",
-      type: clothes.type || "top",
-    });
-  }
-}, [clothes]);
-
+  const [errorMessage, setErrorMessage] = useState("");
   const handleChange = (e) => {
     setForm({
       ...form,
@@ -40,15 +32,16 @@ function ClothesForm({ clothes, onSuccess }) {
       console.error(err);
 
       if (err.response?.data?.name) {
-        alert(err.response.data.name[0]);
+        setErrorMessage(err.response.data.name[0]);
       } else {
-        alert("Ошибка при сохранении");
+        setErrorMessage("Ошибка при сохранении");
       }
     }
 };
 
 
   return (
+    <>
       <form onSubmit={handleSubmit} className="space-y-6">
         <h2 className="text-xl font-bold text-gray-800 mb-4">
           {clothes ? "Редактировать одежду" : "Добавить одежду"}
@@ -104,6 +97,12 @@ function ClothesForm({ clothes, onSuccess }) {
             </div>
        </form>
 
+      <AlertModal
+        title="Ошибка"
+        message={errorMessage}
+        onClose={() => setErrorMessage("")}
+      />
+    </>
 
   );
 }

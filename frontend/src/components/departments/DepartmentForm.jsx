@@ -1,19 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import api from "../../api/api";
+import AlertModal from "../ui/AlertModal";
 
 function DepartmentForm({ department, onSuccess }) {
   const [form, setForm] = useState({
     name: department?.name || "",
   });
-
-
-  useEffect(() => {
-  if (department) {
-    setForm({
-      name: department.name || "",
-    });
-  }
-}, [department]);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleChange = (e) => {
     setForm({
@@ -39,15 +32,16 @@ function DepartmentForm({ department, onSuccess }) {
       console.error(err);
 
       if (err.response?.data?.name) {
-        alert(err.response.data.name[0]);
+        setErrorMessage(err.response.data.name[0]);
       } else {
-        alert("Ошибка при сохранении");
+        setErrorMessage("Ошибка при сохранении");
       }
     }
 };
 
 
   return (
+    <>
       <form onSubmit={handleSubmit} className="space-y-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">
           {department ? "Редактировать подразделение" : "Добавить подразделение"}
@@ -82,6 +76,12 @@ function DepartmentForm({ department, onSuccess }) {
             </div>
        </form>
 
+      <AlertModal
+        title="Ошибка"
+        message={errorMessage}
+        onClose={() => setErrorMessage("")}
+      />
+    </>
 
   );
 }
