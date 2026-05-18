@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../../api/api";
 
 export default function IssueItemModal({ onClose, onAdd }) {
   const [items, setItems] = useState([]);
-  const [selectedItem, setSelectedItem] = useState(null);
   const [available, setAvailable] = useState(null);
 
   const [form, setForm] = useState({
@@ -24,23 +23,14 @@ export default function IssueItemModal({ onClose, onAdd }) {
       .catch(err => console.error(err));
   }, []);
 
-  // 🔹 Определяем выбранную одежду
-  useEffect(() => {
-    const found = items.find(i => i.id === Number(form.item));
-    setSelectedItem(found || null);
-
-    // Для безразмерной одежды обнуляем size/height
-    if (found?.type === "other") {
-      setForm(prev => ({ ...prev, size: null, height: null }));
-    } else if (found?.type === "shoes") {
-      setForm(prev => ({ ...prev, height: null }));
-    }
-  }, [form.item, items]);
+  const selectedItem = useMemo(
+    () => items.find(i => i.id === Number(form.item)) || null,
+    [form.item, items]
+  );
 
   // 🔹 Проверка доступного количества на складе
   useEffect(() => {
     if (!form.item) {
-      setAvailable(null);
       return;
     }
 
@@ -56,7 +46,31 @@ export default function IssueItemModal({ onClose, onAdd }) {
   // 🔹 Обработка изменений полей
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value === "" ? null : value }));
+    const nextValue = value === "" ? null : value;
+
+    if (["item", "size", "height"].includes(name)) {
+      setAvailable(null);
+    }
+
+    setForm(prev => {
+      const nextForm = {
+        ...prev,
+        [name]: nextValue,
+      };
+
+      if (name === "item") {
+        const nextItem = items.find(i => i.id === Number(nextValue));
+
+        if (nextItem?.type === "other") {
+          nextForm.size = null;
+          nextForm.height = null;
+        } else if (nextItem?.type === "shoes") {
+          nextForm.height = null;
+        }
+      }
+
+      return nextForm;
+    });
   };
 
   // 🔹 Валидация

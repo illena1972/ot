@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import api from "../../api/api";
 
 export default function OrderReportDetail({ item }) {
@@ -6,11 +6,7 @@ export default function OrderReportDetail({ item }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, [item]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -34,7 +30,11 @@ export default function OrderReportDetail({ item }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [item]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   if (loading) {
     return (

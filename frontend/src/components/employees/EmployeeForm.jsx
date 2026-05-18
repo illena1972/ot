@@ -1,37 +1,21 @@
 import { useEffect, useState } from "react";
 import api from "../../api/api";
 
+const getInitialForm = (employee) => ({
+  last_name: employee?.last_name || "",
+  first_name: employee?.first_name || "",
+  middle_name: employee?.middle_name || "",
+  sex: employee?.sex || "M",
+  department: employee?.department ? String(employee.department) : "",
+  service: employee?.service ? String(employee.service) : "",
+  position: employee?.position ? String(employee.position) : "",
+  clothes_size: employee?.clothes_size || "",
+  height: employee?.height || "",
+  shoe_size: employee?.shoe_size || "",
+});
+
 function EmployeeForm({ employee, onSuccess }) {
-      const [form, setForm] = useState({
-      last_name: employee?.last_name || "",
-      first_name: employee?.first_name || "",
-      middle_name: employee?.middle_name || "",
-      sex: employee?.sex || "M",
-      department: employee?.department ? String(employee.department) : "",
-      service: employee?.service ? String(employee.service) : "",
-      position: employee?.position ? String(employee.position) : "",
-      clothes_size: employee?.clothes_size || "",
-      height: employee?.height || "",
-      shoe_size: employee?.shoe_size || "",
-  });
-
-  useEffect(() => {
-  if (employee) {
-    setForm({
-      last_name: employee.last_name || "",
-      first_name: employee.first_name || "",
-      middle_name: employee.middle_name || "",
-      sex: employee.sex || "M",
-      department: employee?.department ? String(employee.department) : "",
-      service: employee?.service ? String(employee.service) : "",
-      position: employee?.position ? String(employee.position) : "",
-      clothes_size: employee.clothes_size || "",
-      height: employee.height || "",
-      shoe_size: employee.shoe_size || "",
-    });
-  }
-}, [employee]);
-
+      const [form, setForm] = useState(() => getInitialForm(employee));
 
   const [departments, setDepartments] = useState([]);
   const [services, setServices] = useState([]);

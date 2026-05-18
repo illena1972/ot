@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import api from "../../api/api";
 
 import OrderReportTable from "./OrderReportTable";
@@ -17,7 +17,7 @@ export default function OrderReportPage() {
 
 
   // загрузка отчета
-  const loadReport = async () => {
+  const loadReport = useCallback(async () => {
       setLoading(true);
 
       try {
@@ -39,14 +39,14 @@ export default function OrderReportPage() {
       } finally {
         setLoading(false);
       }
-    };
+    }, [typeFilter]);
 
 
   useEffect(() => {
 
     loadReport();
 
-  }, [typeFilter]);
+  }, [loadReport]);
 
 
   // ✅ экспорт Excel

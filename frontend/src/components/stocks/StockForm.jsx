@@ -1,18 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../../api/api";
 
-function StockForm({ stock, onSuccess }) {
-  const [items, setItems] = useState([]);
-  const [selectedItem, setSelectedItem] = useState(null);
-
-  const [form, setForm] = useState({
+const getInitialForm = (stock) => ({
   item: stock?.item || "",
   size: stock?.size ?? "",
   height: stock?.height ?? "",
   quantity: stock?.quantity || "",
-  //date_income: stock?.date_income || getToday(),
   note: stock?.note || "",
-  });
+});
+
+function StockForm({ stock, onSuccess }) {
+  const [items, setItems] = useState([]);
+
+  const [form, setForm] = useState(() => getInitialForm(stock));
   const [errors, setErrors] = useState({});
 
 
@@ -24,51 +24,35 @@ function StockForm({ stock, onSuccess }) {
       .catch(err => console.error(err));
   }, []);
 
-  // 🔹 при выборе одежды узнаём тип
-  useEffect(() => {
-  const found = items.find(i => i.id === Number(form.item));
-  setSelectedItem(found || null);
-
-  // 👇 ВАЖНО
-    if (found?.type === "other") {
-      setForm(prev => ({
-        ...prev,
-        size: null,
-        height: null,
-      }));
-    }
-
-    if (found?.type === "shoes") {
-      setForm(prev => ({
-        ...prev,
-        height: null,
-      }));
-    }
-
-
-
-  }, [form.item, items]);
-
-  useEffect(() => {
-  if (stock) {
-    setForm({
-      item: stock.item,
-      size: stock.size ?? "",
-      height: stock.height ?? "",
-      quantity: stock.quantity,
-      //date_income: stock.date_income || getToday(),
-      note: stock.note || "",
-    });
-  }
-}, [stock]);
-
+  const selectedItem = useMemo(
+    () => items.find(i => i.id === Number(form.item)) || null,
+    [form.item, items]
+  );
 
   const handleChange = (e) => {
   const { name, value } = e.target;
+  const nextValue = value === "" ? null : value;
 
-  setForm({
-    ...form,
-    [name]: value === "" ? null : value,
+  setForm(prev => {
+    const nextForm = {
+      ...prev,
+      [name]: nextValue,
+    };
+
+    if (name === "item") {
+      const nextItem = items.find(i => i.id === Number(nextValue));
+
+      if (nextItem?.type === "other") {
+        nextForm.size = null;
+        nextForm.height = null;
+      }
+
+      if (nextItem?.type === "shoes") {
+        nextForm.height = null;
+      }
+    }
+
+    return nextForm;
   });
   };
 

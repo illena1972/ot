@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import api from "../../api/api";
 import EmployeeReportTable from "./EmployeeReportTable";
 import Modal from "../ui/Modal";// путь к Modal.jsx
@@ -36,7 +36,7 @@ export default function EmployeeReportPage() {
     }, []);
 
   // загрузка сотрудников
-  const loadEmployees = async () => {
+  const loadEmployees = useCallback(async () => {
 
     const params = {};
 
@@ -53,11 +53,11 @@ export default function EmployeeReportPage() {
       : res.data.results || [];
 
     setEmployees(data);
-  };
+  }, [department, search]);
 
   useEffect(() => {
     loadEmployees();
-  }, [search, department]);
+  }, [loadEmployees]);
 
   // загрузка отчета
   const loadReport = async (employee) => {
@@ -98,7 +98,7 @@ export default function EmployeeReportPage() {
 
   try {
 
-    await api.delete(`issue-items/${itemId}/`);
+    await api.delete(`issue-items/${itemId}/write-off/`);
 
     setReportItems(prev =>
       prev.filter(item => item.id !== itemId)
