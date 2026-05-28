@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import api from "../../api/api";
 
-export default function OrderReportDetail({ item }) {
+const formatDate = (dateValue) => {
+  if (!dateValue) return "—";
+
+  return new Date(dateValue).toLocaleDateString("ru-RU");
+};
+
+export default function OrderReportDetail({ item, reportDate }) {
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,6 +20,7 @@ export default function OrderReportDetail({ item }) {
         item_id: item.item_id,
         size: item.size,
         height: item.height,
+        date: reportDate,
       };
 
       const res = await api.get("reports/order/detail/", { params });
@@ -30,7 +37,7 @@ export default function OrderReportDetail({ item }) {
     } finally {
       setLoading(false);
     }
-  }, [item]);
+  }, [item, reportDate]);
 
   useEffect(() => {
     loadData();
@@ -99,11 +106,11 @@ export default function OrderReportDetail({ item }) {
                   </td>
 
                   <td className="px-6 py-4 text-center text-gray-600 text-base">
-                    {row.date_received}
+                    {formatDate(row.date_received)}
                   </td>
 
                   <td className="px-6 py-4 text-center text-gray-600 text-base">
-                    {row.date_expire}
+                    {formatDate(row.date_expire)}
                   </td>
 
                 </tr>

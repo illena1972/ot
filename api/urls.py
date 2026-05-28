@@ -13,6 +13,7 @@ from .views import (
     ClothesIssueItemViewSet,
 
     stock_available,
+    write_off_issue_item,
 
     order_report,
     order_report_detail, order_report_export,
@@ -37,6 +38,12 @@ urlpatterns = [
         "stocks/available/",
         stock_available,
         name="stock-available"
+    ),
+
+    path(
+        "issue-items/<int:pk>/write-off/",
+        write_off_issue_item,
+        name="issue-item-write-off"
     ),
 
     # report for order

@@ -26,6 +26,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
 from datetime import timedelta
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 
 import openpyxl
 from django.http import HttpResponse
@@ -115,7 +116,7 @@ class ClothesItemViewSet(ModelViewSet):
 
 class ClothesIssueViewSet(ModelViewSet):
     queryset = ClothesIssue.objects.select_related("employee").prefetch_related(
-        "items", "items__stock", "items__stock__item"
+        "items"
     )
     serializer_class = ClothesIssueSerializer
 
@@ -124,7 +125,11 @@ class ClothesIssueViewSet(ModelViewSet):
 
 
 class StockViewSet(ModelViewSet):
-    queryset = Stock.objects.all()
+    queryset = Stock.objects.select_related("item").order_by(
+        "item__name",
+        "size",
+        "height",
+    )
     serializer_class = StockSerializer
 
     def create(self, request, *args, **kwargs):
@@ -198,14 +203,37 @@ class ClothesIssueItemViewSet(ModelViewSet):
         return Response(status=204)
 
 
+@api_view(["DELETE"])
+def write_off_issue_item(request, pk):
+    item = ClothesIssueItem.objects.get(pk=pk)
+    item.delete()
+    return Response(status=204)
+
+
 
 
 # отчет для заказа
 
+def get_order_report_limit_date(request):
+    report_date = request.GET.get("date")
+
+    if not report_date:
+        return timezone.now().date() + timedelta(days=180)
+
+    parsed_date = parse_date(report_date)
+
+    if not parsed_date:
+        return None
+
+    return parsed_date
+
 @api_view(["GET"])
 def order_report(request):
 
-    limit_date = timezone.now().date() + timedelta(days=180)
+    limit_date = get_order_report_limit_date(request)
+
+    if not limit_date:
+        return Response({"date": ["Укажите корректную дату отчета"]}, status=400)
 
     queryset = ClothesIssueItem.objects.filter(
         date_expire__isnull=False,
@@ -265,7 +293,10 @@ def order_report_detail(request):
     size = request.GET.get("size")
     height = request.GET.get("height")
 
-    limit_date = timezone.now().date() + timedelta(days=180)
+    limit_date = get_order_report_limit_date(request)
+
+    if not limit_date:
+        return Response({"date": ["Укажите корректную дату отчета"]}, status=400)
 
     queryset = ClothesIssueItem.objects.filter(
         item_id=item_id,
@@ -314,8 +345,10 @@ def order_report_export(request):
     Можно фильтровать по типу одежды через GET-параметр type.
     """
 
-    # предел для 6 месяцев
-    limit_date = timezone.now().date() + timezone.timedelta(days=180)
+    limit_date = get_order_report_limit_date(request)
+
+    if not limit_date:
+        return Response({"date": ["Укажите корректную дату отчета"]}, status=400)
 
     # базовый queryset
     queryset = ClothesIssueItem.objects.filter(date_expire__lte=limit_date)

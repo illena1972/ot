@@ -1,7 +1,6 @@
 # serializers.py
 from django.db import transaction
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
 from datetime import date
 from .models import Department, Service, Position, Employee, ClothesItem, ClothesType, ClothesIssue, \
     ClothesIssueItem, Stock
@@ -11,17 +10,32 @@ from django.db.models import F
 
 
 import logging
-class DepartmentSerializer(serializers.ModelSerializer):
-    employee_count = serializers.IntegerField(read_only=True)
+class CaseInsensitiveNameValidatorMixin:
+    duplicate_name_message = "Запись с таким наименованием уже существует"
 
-    name = serializers.CharField(
-        validators=[
-            UniqueValidator(
-                queryset=Department.objects.all(),
-                message="Подразделение с таким наименованием уже существует"
-            )
-        ]
-    )
+    def validate_name(self, value):
+        value = value.strip()
+        normalized_value = value.casefold()
+        queryset = self.Meta.model.objects.all()
+
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        exists = any(
+            item_name and item_name.strip().casefold() == normalized_value
+            for item_name in queryset.values_list("name", flat=True)
+        )
+
+        if exists:
+            raise serializers.ValidationError(self.duplicate_name_message)
+
+        return value
+
+
+class DepartmentSerializer(CaseInsensitiveNameValidatorMixin, serializers.ModelSerializer):
+    duplicate_name_message = "Подразделение с таким наименованием уже существует"
+    employee_count = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(validators=[])
 
     class Meta:
         model = Department
@@ -29,15 +43,10 @@ class DepartmentSerializer(serializers.ModelSerializer):
 
 
 
-class ServiceSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(
-        validators=[
-            UniqueValidator(
-                queryset=Service.objects.all(),
-                message="Служба с таким наименованием уже существует"
-            )
-        ]
-    )
+class ServiceSerializer(CaseInsensitiveNameValidatorMixin, serializers.ModelSerializer):
+    duplicate_name_message = "Служба с таким наименованием уже существует"
+    name = serializers.CharField(validators=[])
+
     class Meta:
         model = Service
         fields = "__all__"
@@ -45,15 +54,10 @@ class ServiceSerializer(serializers.ModelSerializer):
 
 
 
-class PositionSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(
-        validators=[
-            UniqueValidator(
-                queryset=Position.objects.all(),
-                message="Должность с таким наименованием уже существует"
-            )
-        ]
-    )
+class PositionSerializer(CaseInsensitiveNameValidatorMixin, serializers.ModelSerializer):
+    duplicate_name_message = "Должность с таким наименованием уже существует"
+    name = serializers.CharField(validators=[])
+
     class Meta:
         model = Position
         fields = "__all__"
@@ -96,17 +100,14 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
 
-        last_name = data.get("last_name")
-        first_name = data.get("first_name")
-        middle_name = data.get("middle_name")
+        last_name = data.get("last_name", "").strip()
+        first_name = data.get("first_name", "").strip()
+        middle_name = (data.get("middle_name") or "").strip()
         department = data.get("department")
         service = data.get("service")
         position = data.get("position")
 
         qs = Employee.objects.filter(
-            last_name=last_name,
-            first_name=first_name,
-            middle_name=middle_name,
             department=department,
             service=service,
             position=position,
@@ -115,28 +116,32 @@ class EmployeeSerializer(serializers.ModelSerializer):
         if self.instance:
             qs = qs.exclude(pk=self.instance.pk)
 
-        if qs.exists():
+        exists = any(
+            employee.last_name.strip().casefold() == last_name.casefold()
+            and employee.first_name.strip().casefold() == first_name.casefold()
+            and (employee.middle_name or "").strip().casefold() == middle_name.casefold()
+            for employee in qs
+        )
+
+        if exists:
             raise serializers.ValidationError({
                 "non_field_errors": [
                     "Сотрудник с такими ФИО, подразделением, службой и должностью уже существует"
                 ]
             })
 
+        data["last_name"] = last_name
+        data["first_name"] = first_name
+        data["middle_name"] = middle_name
+
         return data
 
 
 
 
-class ClothesItemSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(
-        validators=[
-            UniqueValidator(
-                queryset=ClothesItem.objects.all(),
-                message="Одежда с таким наименованием уже существует"
-            )
-        ]
-    )
-
+class ClothesItemSerializer(CaseInsensitiveNameValidatorMixin, serializers.ModelSerializer):
+    duplicate_name_message = "Одежда с таким наименованием уже существует"
+    name = serializers.CharField(validators=[])
     type_label = serializers.CharField(source="get_type_display", read_only=True)
 
     class Meta:
@@ -244,44 +249,6 @@ class ClothesIssueSerializer(serializers.ModelSerializer):
             )
 
         return issue
-
-    def update(self, instance, validated_data):
-
-        old_quantity = instance.quantity
-        new_quantity = validated_data.get("quantity", instance.quantity)
-
-        diff = new_quantity - old_quantity
-
-        with transaction.atomic():
-            stock = Stock.objects.select_for_update().get(
-                item=instance.item,
-                size=instance.size,
-                height=instance.height
-            )
-
-            if diff > 0:
-                if stock.quantity < diff:
-                    raise serializers.ValidationError(
-                        f"Недостаточно на складе '{instance.item}'. Доступно: {stock.quantity}, требуется дополнительно: {diff}"
-                    )
-                stock.quantity = F("quantity") - diff
-                stock.save()
-
-            elif diff < 0:
-                stock.quantity = F("quantity") + abs(diff)
-                stock.save()
-
-            instance.quantity = new_quantity
-            instance.operation_life_months = validated_data.get(
-                "operation_life_months",
-                instance.operation_life_months
-            )
-            instance.note = validated_data.get("note", instance.note)
-
-            instance.save()
-
-        return instance
-
 
 # для проверки доступности при добавлении позиции
 class StockAvailableSerializer(serializers.Serializer):

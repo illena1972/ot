@@ -4,6 +4,7 @@ import api from "../../api/api";
 import IssueItemModal from "./IssueItemModal";
 import IssueItemsTable from "./IssueItemsTable";
 import Select from "react-select";
+import RussianDatePicker from "../ui/RussianDatePicker";
 
 export default function IssueCreate() {
   const [employees, setEmployees] = useState([]);
@@ -136,11 +137,9 @@ export default function IssueCreate() {
           <label className="block text-sm text-gray-500 mb-1">
             Дата выдачи
           </label>
-          <input
-            type="date"
+          <RussianDatePicker
             value={date}
-            onChange={e => setDate(e.target.value)}
-            className="form-control"
+            onChange={setDate}
           />
         </div>
 

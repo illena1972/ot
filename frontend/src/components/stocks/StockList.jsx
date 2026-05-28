@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../../api/api";
 import StockModal from "./StockModal";
 import StockForm from "./StockForm";
@@ -94,10 +94,22 @@ export default function StockList() {
   };
 
   // фильтр
-  const filteredStocks =
-    typeFilter === "all"
-      ? stocks
-      : stocks.filter(s => s.item_type === typeFilter);
+  const filteredStocks = useMemo(() => {
+    const visibleStocks =
+      typeFilter === "all"
+        ? stocks
+        : stocks.filter(s => s.item_type === typeFilter);
+
+    return [...visibleStocks].sort((a, b) => {
+      const nameCompare = a.item_name.localeCompare(b.item_name, "ru");
+
+      if (nameCompare !== 0) {
+        return nameCompare;
+      }
+
+      return (a.size ?? 0) - (b.size ?? 0) || (a.height ?? 0) - (b.height ?? 0);
+    });
+  }, [stocks, typeFilter]);
 
   return (
   <div>

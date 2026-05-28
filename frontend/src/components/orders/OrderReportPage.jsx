@@ -5,6 +5,13 @@ import OrderReportTable from "./OrderReportTable";
 import OrderReportDetail from "./OrderReportDetail";
 
 import Modal from "../ui/Modal";// путь к Modal.jsx
+import RussianDatePicker from "../ui/RussianDatePicker";
+
+const getDefaultReportDate = () => {
+  const date = new Date();
+  date.setMonth(date.getMonth() + 6);
+  return date.toISOString().slice(0, 10);
+};
 
 export default function OrderReportPage() {
 
@@ -12,6 +19,7 @@ export default function OrderReportPage() {
   const [loading, setLoading] = useState(false);
 
   const [typeFilter, setTypeFilter] = useState("all");
+  const [reportDate, setReportDate] = useState(getDefaultReportDate);
 
   const [selectedItem, setSelectedItem] = useState(null);
 
@@ -21,10 +29,11 @@ export default function OrderReportPage() {
       setLoading(true);
 
       try {
-        const params =
-          typeFilter === "all"
-            ? {}
-            : { type: typeFilter };
+        const params = { date: reportDate };
+
+        if (typeFilter !== "all") {
+          params.type = typeFilter;
+        }
 
         const res = await api.get("reports/order/", { params });
 
@@ -39,7 +48,7 @@ export default function OrderReportPage() {
       } finally {
         setLoading(false);
       }
-    }, [typeFilter]);
+    }, [reportDate, typeFilter]);
 
 
   useEffect(() => {
@@ -54,10 +63,11 @@ export default function OrderReportPage() {
 
     try {
 
-      const params =
-        typeFilter === "all"
-          ? {}
-          : { type: typeFilter };
+      const params = { date: reportDate };
+
+      if (typeFilter !== "all") {
+        params.type = typeFilter;
+      }
 
       const response = await api.get(
         "reports/order/export/",
@@ -97,24 +107,38 @@ export default function OrderReportPage() {
   <div className="space-y-6">
     {/* Заголовок */}
 
-    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
       <div>
         <h1 className="text-3xl font-bold text-gray-800">
           Отчет для заказа спецодежды
         </h1>
 
         <p className="text-base text-gray-600 mt-2">
-          Спецодежда с оставшимся сроком менее 6 месяцев
+          Спецодежда со сроком носки до выбранной даты
         </p>
       </div>
 
-      <button
-        onClick={handleExport}
-        className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl font-semibold text-base transition"
-      >
-        <i className="fa-solid fa-file-excel"></i>
-        Экспорт в Excel
-      </button>
+      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+        <div>
+          <label className="block text-sm text-gray-500 mb-1">
+            Сформировать на дату
+          </label>
+          <div className="min-w-52">
+            <RussianDatePicker
+              value={reportDate}
+              onChange={setReportDate}
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={handleExport}
+          className="inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl font-semibold text-base transition"
+        >
+          <i className="fa-solid fa-file-excel"></i>
+          Экспорт в Excel
+        </button>
+      </div>
     </div>
 
     {/* Таблица */}
@@ -136,7 +160,7 @@ export default function OrderReportPage() {
         title={`Выдано сотрудникам: ${selectedItem.item_name}`}
         width="max-w-6xl"
       >
-        <OrderReportDetail item={selectedItem} />
+        <OrderReportDetail item={selectedItem} reportDate={reportDate} />
       </Modal>
     )}
   </div>
