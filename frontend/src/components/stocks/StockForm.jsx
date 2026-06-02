@@ -3,11 +3,30 @@ import api from "../../api/api";
 
 const getInitialForm = (stock) => ({
   item: stock?.item || "",
-  size: stock?.size ?? "",
-  height: stock?.height ?? "",
+  size: stock?.item_type === "other" ? null : stock?.size ?? "",
+  height: ["shoes", "other"].includes(stock?.item_type) ? null : stock?.height ?? "",
   quantity: stock?.quantity || "",
   note: stock?.note || "",
 });
+
+const normalizeFormByType = (form, itemType) => {
+  const normalizedForm = {
+    ...form,
+    size: form.size === "" ? null : form.size,
+    height: form.height === "" ? null : form.height,
+  };
+
+  if (itemType === "shoes") {
+    normalizedForm.height = null;
+  }
+
+  if (itemType === "other") {
+    normalizedForm.size = null;
+    normalizedForm.height = null;
+  }
+
+  return normalizedForm;
+};
 
 function StockForm({ stock, onSuccess }) {
   const [items, setItems] = useState([]);
@@ -28,6 +47,7 @@ function StockForm({ stock, onSuccess }) {
     () => items.find(i => i.id === Number(form.item)) || null,
     [form.item, items]
   );
+  const selectedItemType = selectedItem?.type || stock?.item_type;
 
   const handleChange = (e) => {
   const { name, value } = e.target;
@@ -63,36 +83,36 @@ function StockForm({ stock, onSuccess }) {
   // -------------------------
   const validateForm = () => {
     const errs = {};
+    const normalizedForm = normalizeFormByType(form, selectedItemType);
 
-    if (!form.item) {
+    if (!normalizedForm.item) {
       errs.item = "Выберите одежду";
     }
 
-    if (!form.quantity || form.quantity <= 0) {
+    if (!normalizedForm.quantity || normalizedForm.quantity <= 0) {
       errs.quantity = "Укажите количество";
     }
 
-    if (selectedItem?.type === "top") {
-      if (!form.size) errs.size = "Укажите размер";
-      if (!form.height) errs.height = "Укажите рост";
+    if (selectedItemType === "top") {
+      if (!normalizedForm.size) errs.size = "Укажите размер";
+      if (!normalizedForm.height) errs.height = "Укажите рост";
     }
 
-    if (selectedItem?.type === "shoes") {
-      if (!form.size) errs.size = "Укажите размер";
-      if (form.height) errs.height = "Рост для обуви не указывается";
+    if (selectedItemType === "shoes") {
+      if (!normalizedForm.size) errs.size = "Укажите размер";
+      if (normalizedForm.height) errs.height = "Рост для обуви не указывается";
     }
 
-    if (selectedItem?.type === "other") {
-      if (form.size || form.height) {
+    if (selectedItemType === "other") {
+      if (normalizedForm.size || normalizedForm.height) {
         errs.size = "Для безразмерной одежды размеры не указываются";
       }
     }
 
 
     if (
-      selectedItem &&
-      selectedItem.type === "other" &&
-      form.size
+      selectedItemType === "other" &&
+      normalizedForm.size
     ) {
       errs.size = "Для безразмерной одежды размер не указывается";
     }
@@ -107,11 +127,13 @@ function StockForm({ stock, onSuccess }) {
 
   if (!validateForm()) return; // 👈 ВАЖНО
 
+  const payload = normalizeFormByType(form, selectedItemType);
+
   try {
     if (stock) {
-      await api.put(`stocks/${stock.id}/`, form);
+      await api.put(`stocks/${stock.id}/`, payload);
     } else {
-      await api.post("stocks/", form);
+      await api.post("stocks/", payload);
     }
 
     if (onSuccess) onSuccess();
@@ -157,7 +179,7 @@ function StockForm({ stock, onSuccess }) {
       </div>
 
       {/* Размер */}
-      {selectedItem && selectedItem.type !== "other" && (
+      {selectedItemType && selectedItemType !== "other" && (
         <div>
           <label className="block text-sm font-medium mb-1">
             Размер
@@ -175,7 +197,7 @@ function StockForm({ stock, onSuccess }) {
 
 
       {/* Рост — только для верхней одежды */}
-        {selectedItem && selectedItem.type === "top" && (
+        {selectedItemType && selectedItemType === "top" && (
           <div>
             <label className="block text-sm font-medium mb-1">
               Рост
