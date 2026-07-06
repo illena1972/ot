@@ -43,6 +43,37 @@ const formatDisplayDate = (value) => {
   return date.toLocaleDateString("ru-RU");
 };
 
+const parseDisplayDate = (value) => {
+  const match = value.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+
+  if (!match) return null;
+
+  const [, dayText, monthText, yearText] = match;
+  const day = Number(dayText);
+  const month = Number(monthText);
+  const year = Number(yearText);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+};
+
+const normalizeDisplayInput = (value) => {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+
+  return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`;
+};
+
 const getMonthDays = (monthDate) => {
   const year = monthDate.getFullYear();
   const month = monthDate.getMonth();
@@ -65,10 +96,15 @@ const getMonthDays = (monthDate) => {
 export default function RussianDatePicker({ value, onChange, placeholder = "Выберите дату" }) {
   const rootRef = useRef(null);
   const [open, setOpen] = useState(false);
+  const [inputValue, setInputValue] = useState(() => formatDisplayDate(value));
   const [monthDate, setMonthDate] = useState(() => parseDate(value) || new Date());
 
   const selectedDate = parseDate(value);
   const days = useMemo(() => getMonthDays(monthDate), [monthDate]);
+
+  useEffect(() => {
+    setInputValue(formatDisplayDate(value));
+  }, [value]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -86,12 +122,47 @@ export default function RussianDatePicker({ value, onChange, placeholder = "Вы
     setOpen(true);
   };
 
+  const handleInputChange = (event) => {
+    const nextInputValue = normalizeDisplayInput(event.target.value);
+    const parsedDate = parseDisplayDate(nextInputValue);
+
+    setInputValue(nextInputValue);
+    setOpen(true);
+
+    if (!nextInputValue) {
+      onChange("");
+      return;
+    }
+
+    if (parsedDate) {
+      onChange(formatDateValue(parsedDate));
+      setMonthDate(parsedDate);
+    }
+  };
+
+  const handleInputBlur = () => {
+    const parsedDate = parseDisplayDate(inputValue);
+
+    if (!inputValue) {
+      onChange("");
+      return;
+    }
+
+    if (parsedDate) {
+      setInputValue(formatDisplayDate(formatDateValue(parsedDate)));
+      return;
+    }
+
+    setInputValue(formatDisplayDate(value));
+  };
+
   const changeMonth = (offset) => {
     setMonthDate(prev => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
   };
 
   const selectDate = (date) => {
     onChange(formatDateValue(date));
+    setInputValue(formatDisplayDate(formatDateValue(date)));
     setOpen(false);
   };
 
@@ -101,6 +172,7 @@ export default function RussianDatePicker({ value, onChange, placeholder = "Вы
 
   const clearDate = () => {
     onChange("");
+    setInputValue("");
     setOpen(false);
   };
 
@@ -112,16 +184,28 @@ export default function RussianDatePicker({ value, onChange, placeholder = "Вы
 
   return (
     <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        onClick={openCalendar}
-        className="form-control text-left flex items-center justify-between gap-3"
-      >
-        <span className={value ? "text-gray-800" : "text-gray-400"}>
-          {formatDisplayDate(value) || placeholder}
-        </span>
-        <i className="fa-regular fa-calendar text-gray-400"></i>
-      </button>
+      <div className="relative">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={handleInputChange}
+          onFocus={openCalendar}
+          onBlur={handleInputBlur}
+          placeholder={placeholder}
+          inputMode="numeric"
+          className="form-control pr-11"
+        />
+
+        <button
+          type="button"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={openCalendar}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          aria-label="Открыть календарь"
+        >
+          <i className="fa-regular fa-calendar"></i>
+        </button>
+      </div>
 
       {open && (
         <div className="absolute right-0 mt-2 w-80 rounded-xl border border-gray-200 bg-white shadow-lg z-50 p-4">

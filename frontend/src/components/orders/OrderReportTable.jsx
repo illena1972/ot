@@ -71,7 +71,9 @@ export default function OrderReportTable({
                 <th className="px-6 py-4 font-semibold">Наименование</th>
                 <th className="px-6 py-4 text-center font-semibold">Размер</th>
                 <th className="px-6 py-4 text-center font-semibold">Рост</th>
-                <th className="px-6 py-4 text-center font-semibold">Количество</th>
+                <th className="px-6 py-4 text-center font-semibold">Требуется заменить</th>
+                <th className="px-6 py-4 text-center font-semibold">Есть на складе</th>
+                <th className="px-6 py-4 text-center font-semibold">К заказу</th>
               </tr>
             </thead>
 
@@ -79,7 +81,7 @@ export default function OrderReportTable({
 
               {loading && (
                 <tr>
-                  <td colSpan="4" className="text-center py-10 text-gray-400">
+                  <td colSpan="6" className="text-center py-10 text-gray-400">
                     Загрузка...
                   </td>
                 </tr>
@@ -87,7 +89,7 @@ export default function OrderReportTable({
 
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan="4" className="text-center py-10 text-gray-400">
+                  <td colSpan="6" className="text-center py-10 text-gray-400">
                     Нет данных
                   </td>
                 </tr>
@@ -131,9 +133,19 @@ export default function OrderReportTable({
                       {item.height || "—"}
                     </td>
 
-                    {/* Количество */}
+                    {/* Требуется заменить */}
                     <td className="px-6 py-4 text-center font-semibold text-gray-800">
                       {item.total_quantity}
+                    </td>
+
+                    {/* Есть на складе */}
+                    <td className="px-6 py-4 text-center text-gray-600 text-base">
+                      {item.stock_quantity}
+                    </td>
+
+                    {/* К заказу */}
+                    <td className="px-6 py-4 text-center font-semibold text-blue-700">
+                      {item.order_quantity}
                     </td>
                   </tr>
                 );
