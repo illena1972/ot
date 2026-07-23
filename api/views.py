@@ -31,6 +31,8 @@ from django.utils.dateparse import parse_date
 import openpyxl
 from django.http import HttpResponse
 from openpyxl import Workbook
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.worksheet.page import PageMargins
 
 
 
@@ -227,6 +229,36 @@ def get_order_report_limit_date(request):
 
     return parsed_date
 
+
+def get_stock_quantity(item_id, size, height):
+    return Stock.objects.filter(
+        item_id=item_id,
+        size=size,
+        height=height,
+    ).aggregate(
+        quantity_total=Sum("quantity")
+    )["quantity_total"] or 0
+
+
+def enrich_order_report_row(row):
+    stock_quantity = get_stock_quantity(
+        row["item_id"],
+        row["size"],
+        row["height"],
+    )
+    total_quantity = row["total_quantity"] or 0
+
+    return {
+        "item_id": row["item_id"],
+        "item_name": row["item__name"],
+        "item_type": row["item__type"],
+        "size": row["size"],
+        "height": row["height"],
+        "total_quantity": total_quantity,
+        "stock_quantity": stock_quantity,
+        "order_quantity": max(total_quantity - stock_quantity, 0),
+    }
+
 @api_view(["GET"])
 def order_report(request):
 
@@ -262,23 +294,7 @@ def order_report(request):
 
     ).order_by("item__name")
 
-    # ✅ формирование результата (ИСПРАВЛЕНО)
-    result = [
-
-        {
-
-            "item_id": row["item_id"],
-            "item_name": row["item__name"],
-            "item_type": row["item__type"],   # ← исправлено
-            "size": row["size"],
-            "height": row["height"],
-            "total_quantity": row["total_quantity"],
-
-        }
-
-        for row in data
-
-    ]
+    result = [enrich_order_report_row(row) for row in data]
 
     serializer = OrderReportSerializer(result, many=True)
 
@@ -351,7 +367,10 @@ def order_report_export(request):
         return Response({"date": ["Укажите корректную дату отчета"]}, status=400)
 
     # базовый queryset
-    queryset = ClothesIssueItem.objects.filter(date_expire__lte=limit_date)
+    queryset = ClothesIssueItem.objects.filter(
+        date_expire__isnull=False,
+        date_expire__lte=limit_date
+    )
 
     # фильтр по типу одежды
     item_type = request.GET.get("type")
@@ -362,7 +381,7 @@ def order_report_export(request):
     data = queryset.values(
         "item_id",
         "item__name",
-        #"item__type",
+        "item__type",
         "size",
         "height",
     ).annotate(
@@ -374,18 +393,150 @@ def order_report_export(request):
     ws = wb.active
     ws.title = "Отчёт для заказа"
 
-    # шапка
-    #ws.append(["Наименование", "Тип", "Размер", "Рост", "Количество"])
-    ws.append(["Наименование", "Размер", "Рост", "Количество"])
+    ws.sheet_properties.outlinePr.summaryBelow = False
+    ws.page_setup.orientation = "landscape"
+    ws.page_setup.paperSize = ws.PAPERSIZE_A4
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_margins = PageMargins(
+        left=0.3,
+        right=0.3,
+        top=0.5,
+        bottom=0.5,
+        header=0.2,
+        footer=0.2,
+    )
+
+    thin_border = Border(
+        left=Side(style="thin", color="D9E2EC"),
+        right=Side(style="thin", color="D9E2EC"),
+        top=Side(style="thin", color="D9E2EC"),
+        bottom=Side(style="thin", color="D9E2EC"),
+    )
+    header_fill = PatternFill("solid", fgColor="E5E7EB")
+    summary_fill = PatternFill("solid", fgColor="EFF6FF")
+
+    ws.append(["Отчёт для заказа спецодежды"])
+    ws.append([f"Сформировано на дату: {limit_date.strftime('%d.%m.%Y')}"])
+    ws.append([
+        "Наименование",
+        "Размер",
+        "Рост",
+        "Требуется заменить",
+        "Есть на складе",
+        "К заказу",
+        "ФИО сотрудника",
+        "Кол-во",
+        "Дата выдачи",
+        "Дата окончания",
+    ])
+
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=10)
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=10)
+    ws["A1"].font = Font(bold=True, size=14)
+    ws["A2"].font = Font(italic=True, color="4B5563")
+
+    for cell in ws[3]:
+        cell.font = Font(bold=True)
+        cell.fill = header_fill
+        cell.border = thin_border
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    def get_detail_queryset(row):
+        detail_queryset = ClothesIssueItem.objects.filter(
+            item_id=row["item_id"],
+            date_expire__isnull=False,
+            date_expire__lte=limit_date,
+        ).select_related(
+            "issue",
+            "issue__employee",
+            "item",
+        )
+
+        if row["size"] is None:
+            detail_queryset = detail_queryset.filter(size__isnull=True)
+        else:
+            detail_queryset = detail_queryset.filter(size=row["size"])
+
+        if row["height"] is None:
+            detail_queryset = detail_queryset.filter(height__isnull=True)
+        else:
+            detail_queryset = detail_queryset.filter(height=row["height"])
+
+        return detail_queryset.order_by(
+            "date_expire",
+            "issue__employee__last_name",
+            "issue__employee__first_name",
+        )
 
     for row in data:
+        report_row = enrich_order_report_row(row)
+
         ws.append([
-            row["item__name"],       # Наименование
-            #row["item__type"],       # Тип одежды
-            row["size"] or "",       # Размер
-            row["height"] or "",     # Рост
-            row["total_quantity"],   # Количество
+            report_row["item_name"],
+            report_row["size"] or "",
+            report_row["height"] or "",
+            report_row["total_quantity"],
+            report_row["stock_quantity"],
+            report_row["order_quantity"],
+            "",
+            "",
+            "",
+            "",
         ])
+
+        summary_row = ws.max_row
+
+        for cell in ws[summary_row]:
+            cell.font = Font(bold=True)
+            cell.fill = summary_fill
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
+
+        detail_start_row = summary_row + 1
+
+        for issue_item in get_detail_queryset(row):
+            ws.append([
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                str(issue_item.issue.employee),
+                issue_item.quantity,
+                issue_item.issue.date_received,
+                issue_item.date_expire,
+            ])
+
+            detail_row = ws.max_row
+            ws.row_dimensions[detail_row].outlineLevel = 1
+            ws.row_dimensions[detail_row].hidden = True
+
+            for cell in ws[detail_row]:
+                cell.border = thin_border
+                cell.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
+
+            ws.cell(row=detail_row, column=9).number_format = "DD.MM.YYYY"
+            ws.cell(row=detail_row, column=10).number_format = "DD.MM.YYYY"
+
+        if ws.max_row >= detail_start_row:
+            ws.row_dimensions[summary_row].collapsed = True
+
+    ws.column_dimensions["A"].width = 42
+    ws.column_dimensions["B"].width = 10
+    ws.column_dimensions["C"].width = 10
+    ws.column_dimensions["D"].width = 16
+    ws.column_dimensions["E"].width = 14
+    ws.column_dimensions["F"].width = 12
+    ws.column_dimensions["G"].width = 36
+    ws.column_dimensions["H"].width = 9
+    ws.column_dimensions["I"].width = 14
+    ws.column_dimensions["J"].width = 14
+    ws.freeze_panes = "A4"
+    ws.auto_filter.ref = f"A3:J{ws.max_row}"
+    ws.print_title_rows = "1:3"
 
     # формируем ответ
     response = HttpResponse(

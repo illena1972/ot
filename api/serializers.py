@@ -322,6 +322,8 @@ class OrderReportSerializer(serializers.Serializer):
     height = serializers.IntegerField(allow_null=True)
 
     total_quantity = serializers.IntegerField()
+    stock_quantity = serializers.IntegerField()
+    order_quantity = serializers.IntegerField()
 
  # отчет для заказа (детализация)
 

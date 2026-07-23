@@ -116,7 +116,7 @@ export default function OrderReportTable({
 
                         <button
                           onClick={() => onSelectItem(item)}
-                          className="font-semibold text-gray-800 text-base hover:text-blue-600 transition"
+                          className="font-semibold text-gray-800 text-base text-left hover:text-blue-600 transition"
                         >
                           {item.item_name}
                         </button>
