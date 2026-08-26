@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 
+from .database_config import build_database_config
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -44,6 +46,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'api',
+    'organizations',
     'django_filters',
 ]
 
@@ -82,10 +85,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': build_database_config('BIOCLEAN_DATABASE', BASE_DIR / 'db.sqlite3'),
 }
 
 
