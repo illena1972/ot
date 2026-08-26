@@ -86,6 +86,11 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
           <span className="text-base font-medium">Отчет для заказа</span>
         </div>
 
+        <div onClick={() => setCurrentPage("employee-card")} className={linkClass("employee-card")}>
+          <i className="fa-solid fa-id-card text-lg w-6 shrink-0"></i>
+          <span className="text-base font-medium">Учетные карточки</span>
+        </div>
+
       </nav>
     </aside>
   );

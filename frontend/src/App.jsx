@@ -8,6 +8,7 @@ import StockList from "./components/stocks/StockList";
 import IssueCreate from "./components/issues/IssueCreate";
 import EmployeeReportPage from "./components/reports/EmployeeReportPage";
 import OrderReportPage from "./components/orders/OrderReportPage";
+import EmployeeCardPage from "./components/cards/EmployeeCardPage";
 
 
 
@@ -25,6 +26,7 @@ function App() {
         if (page === "issues") return <IssueCreate />;
         if (page === "employee-report") return <EmployeeReportPage />;
         if (page === "order-report") return <OrderReportPage />;
+        if (page === "employee-card") return <EmployeeCardPage />;
 
       }}
     </Layout>

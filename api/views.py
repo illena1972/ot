@@ -25,8 +25,13 @@ from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
 from datetime import timedelta
+from io import BytesIO
+from pathlib import Path
+from urllib.parse import quote
 from django.utils import timezone
 from django.utils.dateparse import parse_date
+from django.conf import settings
+from django.shortcuts import get_object_or_404
 
 import openpyxl
 from django.http import HttpResponse
@@ -545,4 +550,144 @@ def order_report_export(request):
     response["Content-Disposition"] = 'attachment; filename="order_report.xlsx"'
     wb.save(response)
 
+    return response
+
+
+@api_view(["GET"])
+def employee_card_export(request):
+    """Creates a personal PPE issue card for the selected employee."""
+    employee_id = request.GET.get("employee_id")
+    if not employee_id:
+        return Response(
+            {"employee_id": ["Выберите сотрудника для формирования карточки."]},
+            status=400,
+        )
+
+    employee = get_object_or_404(
+        Employee.objects.select_related("department", "position"), pk=employee_id
+    )
+    issue_items = ClothesIssueItem.objects.filter(
+        issue__employee=employee
+    ).select_related("issue", "item").order_by(
+        "issue__date_received", "item__name", "pk"
+    )
+
+    template_path = (
+        Path(settings.BASE_DIR) / "api" / "report_templates" / "employee_card_template.xlsx"
+    )
+    wb = openpyxl.load_workbook(template_path)
+    ws = wb["ЛК СИЗ"]
+
+    sex_labels = {"M": "Мужской", "F": "Женский"}
+    ws["M3"] = employee.last_name
+    ws["H4"] = employee.first_name
+    ws["AJ4"] = employee.middle_name or ""
+    ws["CD3"] = sex_labels.get(employee.sex, "")
+    ws["CD4"] = employee.height or ""
+    ws["AE6"] = employee.department.name if employee.department else ""
+    ws["CD6"] = employee.clothes_size or ""
+    ws["AA7"] = employee.position.name if employee.position else ""
+    ws["CD7"] = employee.shoe_size or ""
+
+    for merged_range in list(ws.merged_cells.ranges):
+        if merged_range.min_row >= 13:
+            ws.unmerge_cells(str(merged_range))
+    for row in ws.iter_rows(min_row=13, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
+        for cell in row:
+            cell.value = None
+    if ws.max_row >= 16:
+        ws.delete_rows(16, ws.max_row - 15)
+
+    thin_border = Border(
+        left=Side(style="thin", color="000000"),
+        right=Side(style="thin", color="000000"),
+        top=Side(style="thin", color="000000"),
+        bottom=Side(style="thin", color="000000"),
+    )
+    header_fill = PatternFill("solid", fgColor="D9E2F3")
+    centered = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    left_aligned = Alignment(horizontal="left", vertical="top", wrap_text=True)
+    columns = [
+        (1, 22, "Наименование СИЗ"),
+        (23, 40, "Модель, марка, артикул, класс защиты СИЗ"),
+        (41, 48, "Дата"),
+        (49, 54, "Количество"),
+        (55, 61, "Лично/дозатор"),
+        (62, 70, "Подпись получившего СИЗ"),
+        (71, 78, "Дата"),
+        (79, 84, "Количество"),
+        (85, 93, "Подпись сдавшего СИЗ"),
+        (94, 101, "Акт списания (дата, номер)"),
+    ]
+
+    ws.merge_cells(start_row=13, start_column=1, end_row=15, end_column=22)
+    ws.merge_cells(start_row=13, start_column=23, end_row=15, end_column=40)
+    ws.merge_cells(start_row=13, start_column=41, end_row=13, end_column=70)
+    ws.merge_cells(start_row=13, start_column=71, end_row=13, end_column=101)
+    ws.cell(13, 1, "Наименование СИЗ")
+    ws.cell(13, 23, "Модель, марка, артикул, класс защиты СИЗ")
+    ws.cell(13, 41, "Выдано")
+    ws.cell(13, 71, "Возвращено")
+    for start, end, title in columns[2:]:
+        ws.merge_cells(start_row=14, start_column=start, end_row=15, end_column=end)
+        ws.cell(14, start, title)
+
+    for row_number in range(13, 16):
+        for column_number in range(1, 102):
+            cell = ws.cell(row_number, column_number)
+            cell.border = thin_border
+            cell.fill = header_fill
+            cell.font = Font(bold=True, size=8)
+            cell.alignment = centered
+
+    for row_number, issue_item in enumerate(issue_items, start=16):
+        values = [
+            issue_item.item.name,
+            "",
+            issue_item.issue.date_received.strftime("%d.%m.%Y"),
+            issue_item.quantity,
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+        ]
+        for (start, end, _), value in zip(columns, values):
+            ws.merge_cells(start_row=row_number, start_column=start, end_row=row_number, end_column=end)
+            cell = ws.cell(row_number, start, value)
+            cell.border = thin_border
+            cell.alignment = left_aligned if start in (1, 23) else centered
+            cell.font = Font(size=8)
+            for column_number in range(start, end + 1):
+                ws.cell(row_number, column_number).border = thin_border
+        ws.row_dimensions[row_number].height = 30
+
+    if not issue_items:
+        ws.merge_cells(start_row=16, start_column=1, end_row=16, end_column=101)
+        cell = ws.cell(16, 1, "Выдачи СИЗ отсутствуют")
+        cell.alignment = centered
+        cell.font = Font(italic=True, size=9, color="6B7280")
+        for column_number in range(1, 102):
+            ws.cell(16, column_number).border = thin_border
+
+    ws.page_setup.orientation = "landscape"
+    ws.page_setup.paperSize = ws.PAPERSIZE_A4
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_margins = PageMargins(left=0.2, right=0.2, top=0.35, bottom=0.35, header=0.1, footer=0.1)
+    ws.print_area = f"A1:CW{ws.max_row}"
+    ws.print_title_rows = "1:15"
+
+    output = BytesIO()
+    wb.save(output)
+    filename = f"Карточка_СИЗ_{employee.last_name}_{employee.first_name}.xlsx"
+    response = HttpResponse(
+        output.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = (
+        f"attachment; filename=employee_card.xlsx; filename*=UTF-8''{quote(filename)}"
+    )
     return response

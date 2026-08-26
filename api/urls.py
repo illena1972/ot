@@ -16,7 +16,7 @@ from .views import (
     write_off_issue_item,
 
     order_report,
-    order_report_detail, order_report_export,
+    order_report_detail, order_report_export, employee_card_export,
 )
 
 router = DefaultRouter()
@@ -62,6 +62,12 @@ urlpatterns = [
     path(
         "reports/order/export/",
         order_report_export
+    ),
+
+    path(
+        "reports/employee-card/export/",
+        employee_card_export,
+        name="employee-card-export",
     ),
 
     # router endpoints
