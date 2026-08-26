@@ -1,5 +1,4 @@
-from django.db import migrations, models
-import django.utils.timezone
+from django.db import migrations
 
 
 class Migration(migrations.Migration):
@@ -9,12 +8,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='clothesstockbatch',
-            name='date_income',
-            field=models.DateField(
-                default=django.utils.timezone.now,
-                verbose_name='Дата поступления'
-            ),
+        # The field was already present in 0001_initial. Keeping this migration
+        # as a no-op lets fresh MySQL databases pass through the old history.
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[],
         ),
     ]

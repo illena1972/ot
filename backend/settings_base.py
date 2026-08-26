@@ -13,9 +13,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 
 from .database_config import build_database_config
+from .environment import load_private_environment
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_private_environment(BASE_DIR)
 
 
 # Quick-start development settings - unsuitable for production
