@@ -10,6 +10,9 @@ ALLOWED_HOSTS = [
 
 CORS_ALLOW_ALL_ORIGINS = True
 
+if MULTI_TENANT_ENABLED:
+    ALLOWED_HOSTS = ['*']
+
 # WhiteNoise для раздачи static через Waitress
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
