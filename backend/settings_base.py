@@ -89,7 +89,13 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': build_database_config('BIOCLEAN_DATABASE', BASE_DIR / 'db.sqlite3'),
+    'platform': build_database_config(
+        'BIOCLEAN_PLATFORM_DATABASE',
+        BASE_DIR / 'platform.sqlite3',
+    ),
 }
+
+PLATFORM_DATABASE_ALIAS = 'platform'
 
 
 # Password validation
