@@ -6,3 +6,4 @@ env/
 staticfiles/
 media/
 db.sqlite3
+backups/

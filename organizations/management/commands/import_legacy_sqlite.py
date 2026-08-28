@@ -6,6 +6,7 @@ from pathlib import Path
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError, call_command
 from django.db import connections
+from django.utils import timezone
 
 from api.models import (
     ClothesIssue,
@@ -46,11 +47,28 @@ class Command(BaseCommand):
             default=str(settings.BASE_DIR / "db.sqlite3"),
             help="Path to the source SQLite database.",
         )
+        parser.add_argument(
+            "--replace",
+            action="store_true",
+            help="Back up and replace existing PPE data in the target database.",
+        )
 
     def handle(self, *args, **options):
         source_path = Path(options["source"])
         if not source_path.is_file():
             raise CommandError(f"SQLite source database was not found: {source_path}")
+
+        backup_path = None
+        if self._target_has_data():
+            if not options["replace"]:
+                raise CommandError(
+                    "The target database already contains PPE data. "
+                    "Use --replace to create a backup and replace it."
+                )
+
+            backup_path = self._backup_target_data()
+            self.stdout.write(f"Backup created: {backup_path}")
+            self._clear_target_data()
 
         if Employee.objects.exists():
             raise CommandError(
@@ -98,7 +116,13 @@ class Command(BaseCommand):
                 )
 
             self.stdout.write("Importing PPE data into MySQL...")
-            call_command("loaddata", fixture_path, database="default", verbosity=0)
+            try:
+                call_command("loaddata", fixture_path, database="default", verbosity=0)
+            except Exception:
+                if backup_path:
+                    self.stderr.write("Import failed. Restoring the MySQL backup...")
+                    call_command("loaddata", str(backup_path), database="default", verbosity=0)
+                raise
 
             source_counts = self._get_counts(source_alias)
             source_counts[Position._meta.verbose_name_plural] -= len(removed_positions)
@@ -123,6 +147,39 @@ class Command(BaseCommand):
             model._meta.verbose_name_plural: model.objects.using(database).count()
             for model in MODELS
         }
+
+    @staticmethod
+    def _target_has_data():
+        return any(model.objects.exists() for model in MODELS)
+
+    def _backup_target_data(self):
+        backup_dir = Path(settings.BASE_DIR) / "backups"
+        backup_dir.mkdir(exist_ok=True)
+        timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
+        backup_path = backup_dir / f"mysql_api_before_import_{timestamp}.json"
+
+        with open(backup_path, "w", encoding="utf-8") as fixture_file:
+            call_command(
+                "dumpdata",
+                "api",
+                database="default",
+                stdout=fixture_file,
+                verbosity=0,
+            )
+
+        return backup_path
+
+    @staticmethod
+    def _clear_target_data():
+        # Delete children before their referenced records to preserve FK integrity.
+        ClothesIssueItem.objects.all().delete()
+        ClothesIssue.objects.all().delete()
+        Stock.objects.all().delete()
+        Employee.objects.all().delete()
+        ClothesItem.objects.all().delete()
+        Department.objects.all().delete()
+        Service.objects.all().delete()
+        Position.objects.all().delete()
 
     @staticmethod
     def _normalize_positions(fixture_path):
