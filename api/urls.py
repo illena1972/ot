@@ -1,6 +1,7 @@
 # api/urls.py
 from rest_framework.routers import DefaultRouter
 from django.urls import path
+from organizations.views import current_organization
 
 from .views import (
     DepartmentViewSet,
@@ -32,6 +33,12 @@ router.register("issue-items", ClothesIssueItemViewSet)
 
 
 urlpatterns = [
+
+    path(
+        "organization/current/",
+        current_organization,
+        name="current-organization",
+    ),
 
     # stock
     path(
