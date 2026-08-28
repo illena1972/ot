@@ -1,4 +1,4 @@
-export default function Sidebar({ currentPage, setCurrentPage, organization, organizationLoading }) {
+export default function Sidebar({ currentPage, setCurrentPage }) {
   const linkClass = (page) =>
     `flex items-center gap-4 px-5 py-3.5 rounded-xl cursor-pointer transition-all ${
       currentPage === page
@@ -19,8 +19,8 @@ export default function Sidebar({ currentPage, setCurrentPage, organization, org
             <h1 className="text-2xl font-bold leading-tight">
               СпецОдежда
             </h1>
-            <p className="text-sm text-blue-300 truncate" title={organization?.name}>
-              {organizationLoading ? "Загрузка организации..." : organization?.name || "Организация не определена"}
+            <p className="text-sm text-blue-300">
+              Система учета
             </p>
           </div>
         </div>

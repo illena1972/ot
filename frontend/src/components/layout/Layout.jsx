@@ -21,8 +21,6 @@ export default function Layout({ children }) {
       <Sidebar
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
-        organization={organization}
-        organizationLoading={organizationLoading}
       />
       <div className="flex-1">
         <Topbar organization={organization} loading={organizationLoading} />
