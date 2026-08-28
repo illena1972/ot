@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 from .database_config import build_database_config
@@ -55,6 +56,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'organizations.middleware.OrganizationDatabaseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -96,6 +98,13 @@ DATABASES = {
 }
 
 PLATFORM_DATABASE_ALIAS = 'platform'
+MULTI_TENANT_ENABLED = os.getenv('BIOCLEAN_MULTI_TENANT', '0') == '1'
+DATABASE_ROUTERS = ['organizations.db_router.OrganizationDatabaseRouter']
+
+# In SaaS mode the organization middleware validates each hostname against the
+# central registry. It must run before Django rejects a new organization domain.
+if MULTI_TENANT_ENABLED:
+    ALLOWED_HOSTS = ['*']
 
 
 # Password validation
