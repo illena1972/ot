@@ -101,6 +101,15 @@ PLATFORM_DATABASE_ALIAS = 'platform'
 MULTI_TENANT_ENABLED = os.getenv('BIOCLEAN_MULTI_TENANT', '0') == '1'
 DATABASE_ROUTERS = ['organizations.db_router.OrganizationDatabaseRouter']
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
 # In SaaS mode the organization middleware validates each hostname against the
 # central registry. It must run before Django rejects a new organization domain.
 if MULTI_TENANT_ENABLED:

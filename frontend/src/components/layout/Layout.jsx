@@ -4,7 +4,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 
 
-export default function Layout({ children }) {
+export default function Layout({ children, user, onLogout }) {
   const [currentPage, setCurrentPage] = useState("employees");
   const [organization, setOrganization] = useState(null);
   const [organizationLoading, setOrganizationLoading] = useState(true);
@@ -23,7 +23,12 @@ export default function Layout({ children }) {
         setCurrentPage={setCurrentPage}
       />
       <div className="flex-1">
-        <Topbar organization={organization} loading={organizationLoading} />
+        <Topbar
+          organization={organization}
+          loading={organizationLoading}
+          user={user}
+          onLogout={onLogout}
+        />
 
         <main className="p-4 sm:p-6 lg:p-8">
           {children(currentPage)}

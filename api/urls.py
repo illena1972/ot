@@ -1,7 +1,7 @@
 # api/urls.py
 from rest_framework.routers import DefaultRouter
 from django.urls import path
-from organizations.views import current_organization
+from organizations.views import current_organization, current_user, login_user, logout_user
 
 from .views import (
     DepartmentViewSet,
@@ -39,6 +39,9 @@ urlpatterns = [
         current_organization,
         name="current-organization",
     ),
+    path("auth/login/", login_user, name="login"),
+    path("auth/logout/", logout_user, name="logout"),
+    path("auth/me/", current_user, name="current-user"),
 
     # stock
     path(

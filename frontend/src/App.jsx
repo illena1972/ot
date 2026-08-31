@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
+import api from "./api/api";
 import Layout from "./components/layout/Layout";
+import LoginPage from "./components/auth/LoginPage";
 import EmployeeList from "./components/employees/EmployeeList";
 import DepartmentList from "./components/departments/DepartmentList";
 import ServiceList from "./components/services/ServiceList";
@@ -14,8 +17,29 @@ import EmployeeCardPage from "./components/cards/EmployeeCardPage";
 
 
 function App() {
+  const [user, setUser] = useState(undefined);
+
+  useEffect(() => {
+    api.get("auth/me/")
+      .then((response) => setUser(response.data.user))
+      .catch(() => setUser(null));
+  }, []);
+
+  const handleLogout = async () => {
+    await api.post("auth/logout/");
+    setUser(null);
+  };
+
+  if (user === undefined) {
+    return <div className="flex min-h-screen items-center justify-center text-sm text-gray-500">Загрузка...</div>;
+  }
+
+  if (user === null) {
+    return <LoginPage onAuthenticated={setUser} />;
+  }
+
   return (
-    <Layout>
+    <Layout user={user} onLogout={handleLogout}>
       {(page) => {
         if (page === "employees") return <EmployeeList />;
         if (page === "departments") return <DepartmentList />;
