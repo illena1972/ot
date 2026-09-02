@@ -47,6 +47,7 @@ Copy-Item "$project\deployment\server\passenger_wsgi.py" "$release\passenger_wsg
 Copy-Item "$project\deployment\server\.htaccess.example" "$release\.htaccess.example"
 Copy-Item "$project\deployment\server\README.md" "$release\DEPLOYMENT.md"
 Copy-Item "$project\deployment\server\requirements.txt" "$release\requirements.txt"
+Copy-Item "$project\docs\add-organization-beget.md" "$release\ADD_ORGANIZATION.md"
 
 if (Test-Path "$project\runserver_prod.py") {
     Copy-Item "$project\runserver_prod.py" "$release\runserver_prod.py"
