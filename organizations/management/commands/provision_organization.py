@@ -25,15 +25,6 @@ class Command(BaseCommand):
         if not domain:
             raise CommandError("Укажите адрес организации.")
 
-        default_connection = connections["default"]
-        with default_connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = %s",
-                [database_name],
-            )
-            if cursor.fetchone() is None:
-                raise CommandError(f"База данных '{database_name}' не найдена.")
-
         if Organization.objects.using("platform").filter(name=name).exists():
             raise CommandError("Организация с таким наименованием уже зарегистрирована.")
         if Organization.objects.using("platform").filter(slug=slug).exists():
@@ -57,9 +48,14 @@ class Command(BaseCommand):
 
         alias = register_organization_database(organization)
         try:
+            with connections[alias].cursor() as cursor:
+                cursor.execute("SELECT 1")
             call_command("migrate", database=alias, interactive=False, verbosity=options["verbosity"])
-        except Exception:
+        except Exception as error:
             organization.delete(using="platform")
-            raise
+            raise CommandError(
+                "Не удалось подключиться к рабочей базе или выполнить миграции. "
+                "Проверьте имя базы и параметры организации в .env."
+            ) from error
 
         self.stdout.write(self.style.SUCCESS(f"Организация '{organization.name}' подготовлена."))

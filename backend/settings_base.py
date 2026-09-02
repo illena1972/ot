@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 from .database_config import build_database_config
 from .environment import load_private_environment
 
@@ -26,7 +28,11 @@ load_private_environment(BASE_DIR)
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-d5ey8-*^7o&51bz#!s^_z7tev&&7@yobf6i!#t$xvs#wcn&8#2'
+SECRET_KEY = os.getenv('BIOCLEAN_SECRET_KEY')
+if not SECRET_KEY:
+    if os.getenv('BIOCLEAN_ENV', 'dev') == 'prod':
+        raise ImproperlyConfigured('BIOCLEAN_SECRET_KEY must be set in production.')
+    SECRET_KEY = 'django-insecure-local-development-only'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
