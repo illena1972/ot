@@ -114,7 +114,7 @@ export default function EmployeeReportPage() {
 };
 
   const handleDelete = async (itemId) => {
-      if (!window.confirm("Удалить выдачу и вернуть позицию на склад?")) {
+      if (!window.confirm("Удалить эту позицию выдачи?")) {
         return;
       }
 

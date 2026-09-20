@@ -53,6 +53,11 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
           <span className="text-base font-medium">Должности</span>
         </div>
 
+        <div onClick={() => setCurrentPage("issue-norms")} className={linkClass("issue-norms")}>
+          <i className="fa-solid fa-list-check text-lg w-6 shrink-0"></i>
+          <span className="text-base font-medium">Нормы выдачи</span>
+        </div>
+
         <div className="text-sm uppercase text-blue-300 px-2 pt-5 font-semibold tracking-wide">
           Спецодежда
         </div>
@@ -74,6 +79,11 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
         <div onClick={() => setCurrentPage("issues")} className={linkClass("issues")}>
           <i className="fa-solid fa-hand-holding text-lg w-6 shrink-0"></i>
           <span className="text-base font-medium">Выдача одежды</span>
+        </div>
+
+        <div onClick={() => setCurrentPage("entitlements")} className={linkClass("entitlements")}>
+          <i className="fa-solid fa-clipboard-check text-lg w-6 shrink-0"></i>
+          <span className="text-base font-medium">Обеспеченность СИЗ</span>
         </div>
 
         <div onClick={() => setCurrentPage("employee-report")} className={linkClass("employee-report")}>

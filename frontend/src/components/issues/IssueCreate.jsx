@@ -5,6 +5,47 @@ import IssueItemModal from "./IssueItemModal";
 import IssueItemsTable from "./IssueItemsTable";
 import Select from "react-select";
 import RussianDatePicker from "../ui/RussianDatePicker";
+import AlertModal from "../ui/AlertModal";
+import EntitlementTable from "../norms/EntitlementTable";
+
+function getIssueErrorMessage(error) {
+  const data = error.response?.data;
+
+  if (!data) {
+    return "Нет соединения с сервером. Проверьте подключение и повторите попытку.";
+  }
+
+  if (typeof data === "string") {
+    return data.trim().startsWith("<")
+      ? "На сервере произошла внутренняя ошибка. Обратитесь к администратору."
+      : data;
+  }
+
+  if (typeof data.detail === "string") {
+    return data.detail;
+  }
+
+  const findFirstError = (value) => {
+    if (typeof value === "string") return value;
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = findFirstError(item);
+        if (found) return found;
+      }
+    }
+    if (value && typeof value === "object") {
+      for (const item of Object.values(value)) {
+        const found = findFirstError(item);
+        if (found) return found;
+      }
+    }
+    return "";
+  };
+
+  const firstError = findFirstError(data);
+
+  return firstError || "Не удалось оформить выдачу.";
+}
 
 export default function IssueCreate() {
   const [employees, setEmployees] = useState([]);
@@ -14,15 +55,30 @@ export default function IssueCreate() {
   const [items, setItems] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [entitlements, setEntitlements] = useState(null);
+  const [modalDefaults, setModalDefaults] = useState(null);
 
   // Загрузка сотрудников
   useEffect(() => {
     api.get("employees/").then(res => setEmployees(res.data));
   }, []);
 
+  useEffect(() => {
+    if (!employee) {
+      setEntitlements(null);
+      return;
+    }
+
+    const params = date ? { date } : {};
+    api.get(`employees/${employee}/entitlements/`, { params })
+      .then((response) => setEntitlements(response.data))
+      .catch(() => setErrorMessage("Не удалось загрузить норму сотрудника."));
+  }, [employee, date]);
+
   // Добавление позиции в список
   const handleAddItem = (item) => {
-    console.log("ADD ITEM:", item);     // отладка
     setItems(prev => [...prev, item]);
   };
 
@@ -33,10 +89,15 @@ export default function IssueCreate() {
 
   // Оформление выдачи
   const handleSubmit = async () => {
+    if (submitting) return;
+
     if (!employee || !date || items.length === 0) {
-      alert("Заполните все данные");
+      setErrorMessage("Выберите сотрудника, дату и добавьте хотя бы одну позицию.");
       return;
     }
+
+    setSubmitting(true);
+    setErrorMessage("");
 
     try {
       // Отправляем только поля, которые нужны бэкенду
@@ -61,9 +122,12 @@ export default function IssueCreate() {
       setDate("");
       setNote("");
       setItems([]);
+      setEntitlements(null);
     } catch (e) {
       console.error(e);
-      alert("Ошибка при оформлении выдачи");
+      setErrorMessage(getIssueErrorMessage(e));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -160,6 +224,19 @@ export default function IssueCreate() {
 
     </div>
 
+    {employee && entitlements && (
+      <div className="space-y-3">
+        <h3 className="text-xl font-semibold text-gray-800">Положено по норме</h3>
+        <EntitlementTable
+          data={entitlements}
+          onIssue={(row) => {
+            setModalDefaults({ itemId: row.item, quantity: row.missing_quantity });
+            setShowModal(true);
+          }}
+        />
+      </div>
+    )}
+
     {/* Позиции */}
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
 
@@ -169,7 +246,10 @@ export default function IssueCreate() {
         </h3>
 
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            setModalDefaults(null);
+            setShowModal(true);
+          }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm"
         >
           + Добавить позицию
@@ -187,9 +267,10 @@ export default function IssueCreate() {
     <div className="flex justify-end">
       <button
         onClick={handleSubmit}
-        className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold text-base"
+        disabled={submitting}
+        className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-8 py-3 rounded-xl font-semibold text-base"
       >
-        Оформить выдачу
+        {submitting ? "Оформление..." : "Оформить выдачу"}
       </button>
     </div>
 
@@ -198,6 +279,9 @@ export default function IssueCreate() {
       <IssueItemModal
         onClose={() => setShowModal(false)}
         onAdd={handleAddItem}
+        entitlementItems={entitlements?.items || []}
+        initialItemId={modalDefaults?.itemId}
+        initialQuantity={modalDefaults?.quantity}
       />
     )}
 
@@ -224,6 +308,12 @@ export default function IssueCreate() {
         </div>
       </div>
     )}
+
+    <AlertModal
+      title="Ошибка"
+      message={errorMessage}
+      onClose={() => setErrorMessage("")}
+    />
 
   </div>
 );

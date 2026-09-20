@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Employee, ClothesItem
+from .models import Employee, ClothesItem, IssueNorm, IssueNormItem
 from .models import Department, Service, Position
 
 
@@ -20,6 +20,18 @@ class ClothesItemAdmin(admin.ModelAdmin):
     list_display = ('name', 'type')
     list_filter = ('type',)
     search_fields = ('name',)
+
+
+class IssueNormItemInline(admin.TabularInline):
+    model = IssueNormItem
+    extra = 1
+
+
+@admin.register(IssueNorm)
+class IssueNormAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+    inlines = (IssueNormItemInline,)
 
 
 

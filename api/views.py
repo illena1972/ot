@@ -1,8 +1,10 @@
 # views.py
 from django.db.models import Count
+from django.db.models.deletion import ProtectedError
+from rest_framework.exceptions import ValidationError
 from rest_framework.viewsets import ModelViewSet
 from .models import Department, Service, Position, Employee, ClothesItem, ClothesIssue,  \
-    Stock, ClothesIssueItem
+    Stock, ClothesIssueItem, IssueNorm
 from .serializers import (
     DepartmentSerializer,
     ServiceSerializer,
@@ -15,7 +17,9 @@ from .serializers import (
     ClothesIssueItemSerializer,
     OrderReportSerializer,
     OrderReportDetailSerializer,
+    IssueNormSerializer,
 )
+from .entitlements import build_employee_entitlements
 
 from django.db.models import Sum
 from django.db.models import F
@@ -59,8 +63,16 @@ class ServiceViewSet(ModelViewSet):
 
 
 class PositionViewSet(ModelViewSet):
-    queryset = Position.objects.order_by("name")
+    queryset = Position.objects.select_related("issue_norm").order_by("name")
     serializer_class = PositionSerializer
+
+
+class IssueNormViewSet(ModelViewSet):
+    queryset = IssueNorm.objects.prefetch_related(
+        "items__item",
+        "positions",
+    ).order_by("name")
+    serializer_class = IssueNormSerializer
 
 
 
@@ -115,10 +127,34 @@ class EmployeeViewSet(ModelViewSet):
             "items": serializer.data
         })
 
+    @action(detail=True, methods=["get"])
+    def entitlements(self, request, pk=None):
+        employee = self.get_queryset().select_related(
+            "position__issue_norm"
+        ).get(pk=pk)
+        requested_date = request.GET.get("date")
+        as_of = parse_date(requested_date) if requested_date else timezone.localdate()
+
+        if not as_of:
+            return Response(
+                {"date": ["Укажите корректную дату"]},
+                status=400,
+            )
+
+        return Response(build_employee_entitlements(employee, as_of))
+
 
 class ClothesItemViewSet(ModelViewSet):
     queryset = ClothesItem.objects.order_by("name")
     serializer_class = ClothesItemSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError as error:
+            raise ValidationError({
+                "detail": "Нельзя удалить СИЗ, пока оно входит в норму выдачи."
+            }) from error
 
 
 class ClothesIssueViewSet(ModelViewSet):
@@ -189,24 +225,8 @@ class ClothesIssueItemViewSet(ModelViewSet):
     serializer_class = ClothesIssueItemSerializer
 
     def destroy(self, request, *args, **kwargs):
-        from django.db import transaction
-        from django.db.models import F
-
         instance = self.get_object()
-
-        with transaction.atomic():
-            stock, _ = Stock.objects.select_for_update().get_or_create(
-                item=instance.item,
-                size=instance.size,
-                height=instance.height,
-                defaults={"quantity": 0},
-            )
-
-            stock.quantity = F("quantity") + instance.quantity
-            stock.save()
-
-            instance.delete()
-
+        instance.delete()
         return Response(status=204)
 
 

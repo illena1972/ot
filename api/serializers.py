@@ -1,9 +1,10 @@
 # serializers.py
-from django.db import transaction
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import DEFAULT_DB_ALIAS, router, transaction
 from rest_framework import serializers
 from datetime import date
 from .models import Department, Service, Position, Employee, ClothesItem, ClothesType, ClothesIssue, \
-    ClothesIssueItem, Stock
+    ClothesIssueItem, Stock, IssueNorm, IssueNormItem
 from django.db.models import F
 
 
@@ -57,10 +58,14 @@ class ServiceSerializer(CaseInsensitiveNameValidatorMixin, serializers.ModelSeri
 class PositionSerializer(CaseInsensitiveNameValidatorMixin, serializers.ModelSerializer):
     duplicate_name_message = "Должность с таким наименованием уже существует"
     name = serializers.CharField(validators=[])
+    issue_norm_name = serializers.CharField(
+        source="issue_norm.name",
+        read_only=True,
+    )
 
     class Meta:
         model = Position
-        fields = "__all__"
+        fields = ["id", "name", "issue_norm", "issue_norm_name"]
 
 
 
@@ -149,6 +154,100 @@ class ClothesItemSerializer(CaseInsensitiveNameValidatorMixin, serializers.Model
         fields = ["id", "name", "type", "type_label"]
 
 
+class IssueNormItemSerializer(serializers.ModelSerializer):
+    item_name = serializers.CharField(source="item.name", read_only=True)
+    item_type = serializers.CharField(source="item.type", read_only=True)
+    quantity = serializers.IntegerField(min_value=1)
+    operation_life_months = serializers.IntegerField(min_value=1)
+
+    class Meta:
+        model = IssueNormItem
+        fields = [
+            "id",
+            "item",
+            "item_name",
+            "item_type",
+            "quantity",
+            "operation_life_months",
+        ]
+
+
+class IssueNormSerializer(CaseInsensitiveNameValidatorMixin, serializers.ModelSerializer):
+    duplicate_name_message = "Норма с таким наименованием уже существует"
+    name = serializers.CharField(validators=[])
+    items = IssueNormItemSerializer(many=True)
+    position_ids = serializers.PrimaryKeyRelatedField(
+        source="positions",
+        queryset=Position.objects.all(),
+        many=True,
+        required=False,
+    )
+    position_names = serializers.SerializerMethodField()
+
+    class Meta:
+        model = IssueNorm
+        fields = [
+            "id",
+            "name",
+            "description",
+            "items",
+            "position_ids",
+            "position_names",
+        ]
+
+    def get_position_names(self, obj):
+        return list(obj.positions.order_by("name").values_list("name", flat=True))
+
+    def validate_items(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                "Добавьте хотя бы одну позицию СИЗ"
+            )
+
+        item_ids = [row["item"].pk for row in value]
+        if len(item_ids) != len(set(item_ids)):
+            raise serializers.ValidationError(
+                "Одно СИЗ нельзя добавить в норму несколько раз"
+            )
+        return value
+
+    def _save_relations(self, norm, items, positions, database_alias):
+        IssueNormItem.objects.using(database_alias).filter(norm=norm).delete()
+        IssueNormItem.objects.using(database_alias).bulk_create([
+            IssueNormItem(norm=norm, **item_data)
+            for item_data in items
+        ])
+        norm.positions.set(positions)
+
+    def create(self, validated_data):
+        items = validated_data.pop("items")
+        positions = validated_data.pop("positions", [])
+        database_alias = router.db_for_write(IssueNorm)
+
+        with transaction.atomic(using=database_alias):
+            norm = IssueNorm.objects.using(database_alias).create(**validated_data)
+            self._save_relations(norm, items, positions, database_alias)
+        return norm
+
+    def update(self, instance, validated_data):
+        items = validated_data.pop("items", None)
+        positions = validated_data.pop("positions", None)
+        database_alias = instance._state.db or router.db_for_write(IssueNorm)
+
+        with transaction.atomic(using=database_alias):
+            for field, value in validated_data.items():
+                setattr(instance, field, value)
+            instance.save(using=database_alias)
+
+            if items is not None:
+                if positions is None:
+                    positions = list(instance.positions.all())
+                self._save_relations(instance, items, positions, database_alias)
+            elif positions is not None:
+                instance.positions.set(positions)
+        return instance
+
+
 
 
 
@@ -230,23 +329,39 @@ class ClothesIssueSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        # забираем позиции и удаляем их из данных для создания самой выдачи
         items_data = validated_data.pop("items")
+        database_alias = validated_data["employee"]._state.db or DEFAULT_DB_ALIAS
+        employee = validated_data["employee"]
+        norm_items = {}
+        if employee.position_id and employee.position.issue_norm_id:
+            norm_items = {
+                row.item_id: row.operation_life_months
+                for row in IssueNormItem.objects.using(database_alias).filter(
+                    norm_id=employee.position.issue_norm_id
+                )
+            }
 
-        # создаём сам документ выдачи
-        issue = ClothesIssue.objects.create(**validated_data)
+        try:
+            with transaction.atomic(using=database_alias):
+                issue = ClothesIssue.objects.using(database_alias).create(
+                    **validated_data
+                )
 
-        # создаём позиции, привязывая их к документу
-        for item_data in items_data:
-            ClothesIssueItem.objects.create(
-                issue=issue,
-                item=item_data["item"],
-                quantity=item_data["quantity"],
-                size=item_data.get("size"),
-                height=item_data.get("height"),
-                operation_life_months=item_data.get("operation_life_months", 12),
-                note=item_data.get("note", ""),
-            )
+                for item_data in items_data:
+                    ClothesIssueItem.objects.using(database_alias).create(
+                        issue=issue,
+                        item=item_data["item"],
+                        quantity=item_data["quantity"],
+                        size=item_data.get("size"),
+                        height=item_data.get("height"),
+                        operation_life_months=norm_items.get(
+                            item_data["item"].pk,
+                            item_data.get("operation_life_months", 12),
+                        ),
+                        note=item_data.get("note", ""),
+                    )
+        except DjangoValidationError as error:
+            raise serializers.ValidationError({"items": error.messages}) from error
 
         return issue
 

@@ -3,7 +3,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from dateutil.relativedelta import relativedelta
 
-from django.db import transaction
+from django.db import DEFAULT_DB_ALIAS, router, transaction
 from django.db.models import F
 
 
@@ -27,6 +27,14 @@ class Service(models.Model):
 class Position(models.Model):
     """Должность"""
     name = models.CharField(max_length=255, unique=True)
+    issue_norm = models.ForeignKey(
+        "IssueNorm",
+        related_name="positions",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        verbose_name="Норма выдачи",
+    )
 
     def __str__(self):
         return self.name
@@ -115,6 +123,58 @@ class ClothesItem(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class IssueNorm(models.Model):
+    """Норма выдачи СИЗ для одной или нескольких должностей."""
+
+    name = models.CharField("Наименование", max_length=255, unique=True)
+    description = models.TextField("Примечание", blank=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Норма выдачи"
+        verbose_name_plural = "Нормы выдачи"
+
+    def __str__(self):
+        return self.name
+
+
+class IssueNormItem(models.Model):
+    """Положенное СИЗ, количество и срок эксплуатации в составе нормы."""
+
+    norm = models.ForeignKey(
+        IssueNorm,
+        related_name="items",
+        on_delete=models.CASCADE,
+        verbose_name="Норма",
+    )
+    item = models.ForeignKey(
+        ClothesItem,
+        related_name="norm_items",
+        on_delete=models.PROTECT,
+        verbose_name="СИЗ",
+    )
+    quantity = models.PositiveIntegerField("Количество", default=1)
+    operation_life_months = models.PositiveIntegerField(
+        "Срок эксплуатации (мес.)",
+        default=12,
+    )
+
+    class Meta:
+        ordering = ["item__name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["norm", "item"],
+                name="unique_item_in_issue_norm",
+                violation_error_message="Это СИЗ уже добавлено в норму",
+            )
+        ]
+        verbose_name = "Позиция нормы выдачи"
+        verbose_name_plural = "Позиции норм выдачи"
+
+    def __str__(self):
+        return f"{self.norm}: {self.item}"
 
 
 class Stock(models.Model):
@@ -225,6 +285,12 @@ class ClothesIssueItem(models.Model):
     def save(self, *args, **kwargs):
 
         is_new = self.pk is None
+        database_alias = (
+            kwargs.get("using")
+            or router.db_for_write(type(self), instance=self)
+            or DEFAULT_DB_ALIAS
+        )
+        kwargs["using"] = database_alias
 
         self.clean()
 
@@ -233,30 +299,43 @@ class ClothesIssueItem(models.Model):
                 months=self.operation_life_months
             )
 
-        with transaction.atomic():
+        with transaction.atomic(using=database_alias):
 
             if is_new:
-
-                try:
-                    stock = Stock.objects.select_for_update().get(
+                stocks = list(
+                    Stock.objects.using(database_alias)
+                    .select_for_update()
+                    .filter(
                         item=self.item,
                         size=self.size,
-                        height=self.height
+                        height=self.height,
                     )
-                except Stock.DoesNotExist:
+                    .order_by("pk")
+                )
+                available_quantity = sum(stock.quantity for stock in stocks)
+
+                if not stocks:
                     raise ValidationError(
                         f"На складе нет '{self.item}' "
                         f"(размер {self.size}, рост {self.height})"
                     )
 
-                if stock.quantity < self.quantity:
+                if available_quantity < self.quantity:
                     raise ValidationError(
                         f"Недостаточно на складе '{self.item}'. "
-                        f"Доступно: {stock.quantity}, требуется: {self.quantity}"
+                        f"Доступно: {available_quantity}, требуется: {self.quantity}"
                     )
 
-                stock.quantity = F("quantity") - self.quantity
-                stock.save()
+                quantity_to_write_off = self.quantity
+                for stock in stocks:
+                    if quantity_to_write_off == 0:
+                        break
+
+                    current_write_off = min(stock.quantity, quantity_to_write_off)
+                    Stock.objects.using(database_alias).filter(pk=stock.pk).update(
+                        quantity=F("quantity") - current_write_off
+                    )
+                    quantity_to_write_off -= current_write_off
 
             super().save(*args, **kwargs)
 

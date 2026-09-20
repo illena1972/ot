@@ -12,6 +12,8 @@ import IssueCreate from "./components/issues/IssueCreate";
 import EmployeeReportPage from "./components/reports/EmployeeReportPage";
 import OrderReportPage from "./components/orders/OrderReportPage";
 import EmployeeCardPage from "./components/cards/EmployeeCardPage";
+import IssueNormsPage from "./components/norms/IssueNormsPage";
+import EmployeeEntitlementsPage from "./components/norms/EmployeeEntitlementsPage";
 
 
 
@@ -45,9 +47,11 @@ function App() {
         if (page === "departments") return <DepartmentList />;
         if (page === "services") return <ServiceList />;
         if (page === "positions") return <PositionList />;
+        if (page === "issue-norms") return <IssueNormsPage />;
         if (page === "clothes") return <ClothesList />;
         if (page === "stocks") return <StockList />;
         if (page === "issues") return <IssueCreate />;
+        if (page === "entitlements") return <EmployeeEntitlementsPage />;
         if (page === "employee-report") return <EmployeeReportPage />;
         if (page === "order-report") return <OrderReportPage />;
         if (page === "employee-card") return <EmployeeCardPage />;

@@ -7,3 +7,4 @@ python-dateutil==2.9.0.post0
 PyMySQL==1.1.1
 cryptography==50.0.1
 whitenoise==6.12.0
+waitress==3.0.2

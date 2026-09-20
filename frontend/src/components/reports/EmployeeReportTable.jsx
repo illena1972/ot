@@ -103,7 +103,7 @@ export default function EmployeeReportTable({
                         type="button"
                         onClick={() => onDelete(item.id)}
                         className="icon-btn-danger"
-                        title="Удалить и вернуть на склад"
+                        title="Удалить"
                       >
                         <i className="fa-regular fa-trash-can"></i>
                       </button>

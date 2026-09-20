@@ -30,8 +30,10 @@ load_private_environment(BASE_DIR)
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('BIOCLEAN_SECRET_KEY')
 if not SECRET_KEY:
-    if os.getenv('BIOCLEAN_ENV', 'dev') == 'prod':
-        raise ImproperlyConfigured('BIOCLEAN_SECRET_KEY must be set in production.')
+    if os.getenv('BIOCLEAN_ENV', 'dev').strip().lower() in {'local', 'prod'}:
+        raise ImproperlyConfigured(
+            'BIOCLEAN_SECRET_KEY must be set for local and hosted installations.'
+        )
     SECRET_KEY = 'django-insecure-local-development-only'
 
 # SECURITY WARNING: don't run with debug turned on in production!

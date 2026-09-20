@@ -12,6 +12,7 @@ from .views import (
     ClothesIssueViewSet,
     StockViewSet,
     ClothesIssueItemViewSet,
+    IssueNormViewSet,
 
     stock_available,
     write_off_issue_item,
@@ -30,6 +31,7 @@ router.register("clothes", ClothesItemViewSet)
 router.register("issues", ClothesIssueViewSet)
 router.register("stocks", StockViewSet)
 router.register("issue-items", ClothesIssueItemViewSet)
+router.register("issue-norms", IssueNormViewSet)
 
 
 urlpatterns = [

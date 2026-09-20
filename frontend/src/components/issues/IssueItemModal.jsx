@@ -1,16 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../../api/api";
 
-export default function IssueItemModal({ onClose, onAdd }) {
+export default function IssueItemModal({
+  onClose,
+  onAdd,
+  entitlementItems = [],
+  initialItemId = "",
+  initialQuantity = 1,
+}) {
   const [items, setItems] = useState([]);
   const [available, setAvailable] = useState(null);
+  const initialNormItem = entitlementItems.find(
+    row => row.item === Number(initialItemId)
+  );
 
   const [form, setForm] = useState({
-    item: "",
-    quantity: 1,
-    size: "",
-    height: "",
-    operation_life_months: 12,
+    item: initialItemId || "",
+    quantity: initialQuantity || 1,
+    size: null,
+    height: null,
+    operation_life_months: initialNormItem?.operation_life_months || 12,
     note: "",
   });
 
@@ -28,20 +37,41 @@ export default function IssueItemModal({ onClose, onAdd }) {
     [form.item, items]
   );
 
+  const selectedNormItem = useMemo(
+    () => entitlementItems.find(row => row.item === Number(form.item)) || null,
+    [entitlementItems, form.item]
+  );
+
+  const canCheckAvailability = Boolean(
+    selectedItem &&
+    (selectedItem.type === "other" ||
+      (selectedItem.type === "shoes" && form.size) ||
+      (selectedItem.type === "top" && form.size && form.height))
+  );
+
   // 🔹 Проверка доступного количества на складе
   useEffect(() => {
-    if (!form.item) {
+    if (!canCheckAvailability) {
       return;
     }
 
+    let active = true;
     const params = { item: form.item };
     if (form.size) params.size = form.size;
     if (form.height) params.height = form.height;
 
     api.get("stocks/available/", { params })
-      .then(res => setAvailable(res.data.available))
-      .catch(() => setAvailable(0));
-  }, [form.item, form.size, form.height]);
+      .then(res => {
+        if (active) setAvailable(res.data.available);
+      })
+      .catch(() => {
+        if (active) setAvailable(0);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [canCheckAvailability, form.item, form.size, form.height]);
 
   // 🔹 Обработка изменений полей
   const handleChange = (e) => {
@@ -60,6 +90,13 @@ export default function IssueItemModal({ onClose, onAdd }) {
 
       if (name === "item") {
         const nextItem = items.find(i => i.id === Number(nextValue));
+        const nextNormItem = entitlementItems.find(
+          row => row.item === Number(nextValue)
+        );
+
+        nextForm.operation_life_months = nextNormItem
+          ? nextNormItem.operation_life_months
+          : 12;
 
         if (nextItem?.type === "other") {
           nextForm.size = null;
@@ -93,7 +130,9 @@ export default function IssueItemModal({ onClose, onAdd }) {
       if (form.size || form.height) errs.size = "Для безразмерной одежды размеры не указываются";
     }
 
-    if (available !== null && form.quantity > available) {
+    if (canCheckAvailability && available === null) {
+      errs.quantity = "Дождитесь проверки наличия на складе";
+    } else if (available !== null && form.quantity > available) {
       errs.quantity = `Недостаточно на складе (доступно ${available})`;
     }
 
@@ -181,6 +220,10 @@ export default function IssueItemModal({ onClose, onAdd }) {
           </p>
         )}
 
+        {canCheckAvailability && available === null && (
+          <p className="text-sm text-gray-500">Проверяем наличие на складе...</p>
+        )}
+
         {/* Количество */}
         <div>
           <label className="block text-sm font-medium mb-1">Количество</label>
@@ -204,8 +247,14 @@ export default function IssueItemModal({ onClose, onAdd }) {
             min="1"
             value={form.operation_life_months}
             onChange={handleChange}
+            disabled={Boolean(selectedNormItem)}
             className="w-full border rounded-lg px-3 py-2"
           />
+          {selectedNormItem && (
+            <p className="mt-1 text-sm text-gray-500">
+              Срок установлен нормой «{selectedNormItem.operation_life_months} мес.»
+            </p>
+          )}
         </div>
 
         {/* Примечание */}
@@ -225,7 +274,11 @@ export default function IssueItemModal({ onClose, onAdd }) {
           <button onClick={onClose} className="px-4 py-2 rounded-lg border">Отмена</button>
           <button
             onClick={handleSubmit}
-            disabled={available !== null && form.quantity > available}
+            disabled={
+              !canCheckAvailability ||
+              available === null ||
+              Number(form.quantity) > available
+            }
             className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:bg-gray-400"
           >
             Добавить
