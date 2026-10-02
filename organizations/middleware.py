@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.http import HttpResponseNotFound
+from django.http import HttpResponseForbidden, HttpResponseNotFound
 
 from .context import (
     reset_organization_database_alias,
@@ -27,10 +27,14 @@ class OrganizationDatabaseMiddleware:
                 settings.PLATFORM_DATABASE_ALIAS
             ).select_related("organization").get(
                 domain=hostname,
-                organization__is_active=True,
             )
         except OrganizationDomain.DoesNotExist:
             return HttpResponseNotFound("Организация для этого адреса не найдена.")
+
+        if not domain.organization.is_active:
+            return HttpResponseForbidden(
+                "Доступ к организации приостановлен. Обратитесь в техническую поддержку."
+            )
 
         alias = register_organization_database(domain.organization)
         token = set_organization_database_alias(alias)

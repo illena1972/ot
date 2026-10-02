@@ -60,7 +60,8 @@ Copy-Item "$project\deployment\local\*" "$release\deployment\local" -Recurse
 New-Item -ItemType Directory -Path "$release\deployment\server" -Force | Out-Null
 Copy-Item "$project\deployment\server\*.sh" "$release\deployment\server"
 
-$userGuide = Get-ChildItem "$project\docs\user-guide" -File -Filter "*.pdf" |
+$guideVersion = (Get-Content $versionFile | ConvertFrom-Json).version
+$userGuide = Get-ChildItem "$project\docs\user-guide" -File -Filter "*v$guideVersion.pdf" |
     Select-Object -First 1
 if (-not $userGuide) {
     throw "User guide PDF not found"

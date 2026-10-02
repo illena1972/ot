@@ -70,6 +70,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'organizations.activity.OrganizationActivityMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -153,6 +154,11 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
+
+ACTIVITY_TIME_ZONE = os.getenv('BIOCLEAN_ACTIVITY_TIME_ZONE', 'Europe/Moscow')
+ACTIVITY_WRITE_INTERVAL_SECONDS = int(
+    os.getenv('BIOCLEAN_ACTIVITY_WRITE_INTERVAL_SECONDS', '300')
+)
 
 # Default primary key field type
 # ---------------- STATIC ----------------

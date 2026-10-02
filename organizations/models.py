@@ -51,3 +51,38 @@ class OrganizationDomain(models.Model):
 
     def __str__(self):
         return self.domain
+
+
+class OrganizationUserActivity(models.Model):
+    """One daily activity summary for an organization user."""
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="user_activity_days",
+        verbose_name="Организация",
+    )
+    username = models.CharField("Пользователь", max_length=150)
+    activity_date = models.DateField("Дата активности")
+    first_seen_at = models.DateTimeField("Первая активность")
+    last_seen_at = models.DateTimeField("Последняя активность")
+
+    class Meta:
+        ordering = ["-activity_date", "username"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "username", "activity_date"],
+                name="unique_organization_user_activity_day",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["organization", "activity_date"],
+                name="org_activity_date_idx",
+            )
+        ]
+        verbose_name = "Активность пользователя"
+        verbose_name_plural = "Активность пользователей"
+
+    def __str__(self):
+        return f"{self.organization}: {self.username}, {self.activity_date}"

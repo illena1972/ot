@@ -53,7 +53,7 @@ export default function EntitlementTable({ data, onIssue }) {
                 </td>
                 <td className="px-5 py-4 text-gray-600">{row.operation_life_months} мес.</td>
                 <td className="px-5 py-4">
-                  {row.missing_quantity ? <span className="font-semibold text-red-600">Выдать сейчас</span> : formatDate(row.next_issue_date)}
+                  {row.missing_quantity ? <span className="font-semibold text-red-600">Не выдано</span> : formatDate(row.next_issue_date)}
                 </td>
                 {onIssue && (
                   <td className="px-5 py-4 text-right">
