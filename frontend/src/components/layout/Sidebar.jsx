@@ -29,6 +29,11 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
       {/* MENU */}
       <nav className="flex-1 p-5 space-y-3">
 
+        <div onClick={() => setCurrentPage("dashboard")} className={linkClass("dashboard")}>
+          <i className="fa-solid fa-house text-lg w-6 shrink-0"></i>
+          <span className="text-base font-medium">Контроль СИЗ</span>
+        </div>
+
         <div className="text-sm uppercase text-blue-300 px-2 font-semibold tracking-wide">
           Справочники
         </div>

@@ -5,7 +5,7 @@ import Topbar from "./Topbar";
 
 
 export default function Layout({ children, user, onLogout }) {
-  const [currentPage, setCurrentPage] = useState("employees");
+  const [currentPage, setCurrentPage] = useState("dashboard");
   const [organization, setOrganization] = useState(null);
   const [organizationLoading, setOrganizationLoading] = useState(true);
 
@@ -31,7 +31,7 @@ export default function Layout({ children, user, onLogout }) {
         />
 
         <main className="p-4 sm:p-6 lg:p-8">
-          {children(currentPage)}
+          {children(currentPage, setCurrentPage)}
         </main>
       </div>
     </div>

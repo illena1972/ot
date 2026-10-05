@@ -7,6 +7,14 @@ slug_validator = RegexValidator(
     message="Код организации может содержать только латинские строчные буквы, цифры и дефисы.",
 )
 
+PPE_WARNING_DAY_CHOICES = (
+    (30, "30 дней"),
+    (60, "60 дней"),
+    (90, "90 дней"),
+    (180, "180 дней"),
+    (360, "360 дней"),
+)
+
 
 class Organization(models.Model):
     """Central registry record for one customer organization."""
@@ -21,6 +29,11 @@ class Organization(models.Model):
     )
     database_name = models.CharField("Имя рабочей базы", max_length=63, unique=True)
     is_active = models.BooleanField("Активна", default=True)
+    ppe_warning_days = models.PositiveSmallIntegerField(
+        "Предупреждать об окончании срока СИЗ за (дней)",
+        default=60,
+        choices=PPE_WARNING_DAY_CHOICES,
+    )
     created_at = models.DateTimeField("Создана", auto_now_add=True)
 
     class Meta:

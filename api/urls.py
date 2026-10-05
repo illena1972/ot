@@ -13,6 +13,7 @@ from .views import (
     StockViewSet,
     ClothesIssueItemViewSet,
     IssueNormViewSet,
+    dashboard,
 
     stock_available,
     write_off_issue_item,
@@ -44,6 +45,7 @@ urlpatterns = [
     path("auth/login/", login_user, name="login"),
     path("auth/logout/", logout_user, name="logout"),
     path("auth/me/", current_user, name="current-user"),
+    path("dashboard/", dashboard, name="dashboard"),
 
     # stock
     path(

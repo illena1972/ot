@@ -14,6 +14,7 @@ import OrderReportPage from "./components/orders/OrderReportPage";
 import EmployeeCardPage from "./components/cards/EmployeeCardPage";
 import IssueNormsPage from "./components/norms/IssueNormsPage";
 import EmployeeEntitlementsPage from "./components/norms/EmployeeEntitlementsPage";
+import DashboardPage from "./components/dashboard/DashboardPage";
 
 
 
@@ -42,7 +43,8 @@ function App() {
 
   return (
     <Layout user={user} onLogout={handleLogout}>
-      {(page) => {
+      {(page, setCurrentPage) => {
+        if (page === "dashboard") return <DashboardPage onNavigate={setCurrentPage} />;
         if (page === "employees") return <EmployeeList />;
         if (page === "departments") return <DepartmentList />;
         if (page === "services") return <ServiceList />;

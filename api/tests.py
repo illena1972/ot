@@ -6,6 +6,7 @@ from rest_framework.test import APIClient
 from rest_framework.exceptions import ValidationError
 
 from .entitlements import build_employee_entitlements
+from .dashboard import build_dashboard_data
 from .models import (
     ClothesIssue,
     ClothesIssueItem,
@@ -218,3 +219,149 @@ class IssueItemDeletionTests(TestCase):
         self.assertEqual(response.status_code, 204)
         self.assertFalse(ClothesIssueItem.objects.filter(pk=issue_item.pk).exists())
         self.assert_stock_was_not_increased()
+
+
+class DashboardTests(TestCase):
+    def setUp(self):
+        self.item_12 = ClothesItem.objects.create(name="Каска", type="other")
+        self.item_18 = ClothesItem.objects.create(name="Куртка", type="other")
+        self.norm = IssueNorm.objects.create(name="Норма дашборда")
+        self.norm_item_12 = IssueNormItem.objects.create(
+            norm=self.norm,
+            item=self.item_12,
+            quantity=1,
+            operation_life_months=12,
+        )
+        self.norm_item_18 = IssueNormItem.objects.create(
+            norm=self.norm,
+            item=self.item_18,
+            quantity=1,
+            operation_life_months=18,
+        )
+        self.position = Position.objects.create(
+            name="Специалист дашборда",
+            issue_norm=self.norm,
+        )
+        self.employee = Employee.objects.create(
+            last_name="Сроков",
+            first_name="Иван",
+            sex="M",
+            position=self.position,
+        )
+        Stock.objects.create(item=self.item_12, quantity=2)
+        Stock.objects.create(item=self.item_18, quantity=2)
+
+    def issue_item(self, item, received, operation_life_months):
+        issue = ClothesIssue.objects.create(
+            employee=self.employee,
+            date_received=received,
+        )
+        return ClothesIssueItem.objects.create(
+            issue=issue,
+            item=item,
+            quantity=1,
+            operation_life_months=operation_life_months,
+        )
+
+    def test_shows_twelve_month_item_on_warning_boundary(self):
+        self.issue_item(self.item_12, date(2025, 12, 3), 12)
+        self.issue_item(self.item_18, date(2026, 1, 1), 18)
+
+        result = build_dashboard_data(60, date(2026, 10, 4))
+
+        tasks = {row["item_name"]: row for row in result["tasks"]}
+        self.assertEqual(tasks["Каска"]["status"], "due_soon")
+        self.assertEqual(tasks["Каска"]["days_remaining"], 60)
+        self.assertNotIn("Куртка", tasks)
+
+    def test_separates_overdue_and_never_issued_items(self):
+        self.issue_item(self.item_12, date(2025, 10, 1), 12)
+
+        result = build_dashboard_data(60, date(2026, 10, 4))
+
+        tasks = {row["item_name"]: row for row in result["tasks"]}
+        self.assertEqual(tasks["Каска"]["status"], "overdue")
+        self.assertEqual(tasks["Каска"]["quantity"], 1)
+        self.assertEqual(tasks["Куртка"]["status"], "missing")
+        self.assertEqual(result["counts"]["overdue"], 1)
+        self.assertEqual(result["counts"]["missing"], 1)
+
+    def test_item_outside_warning_period_is_not_a_task(self):
+        self.issue_item(self.item_12, date(2026, 1, 1), 12)
+        self.issue_item(self.item_18, date(2026, 1, 1), 18)
+
+        result = build_dashboard_data(60, date(2026, 10, 4))
+
+        self.assertEqual(result["tasks"], [])
+        self.assertEqual(result["counts"]["total"], 0)
+
+    def test_tasks_are_sorted_by_status_then_employee_name(self):
+        second_employee = Employee.objects.create(
+            last_name="Абрамов",
+            first_name="Антон",
+            sex="M",
+            position=self.position,
+        )
+        second_issue = ClothesIssue.objects.create(
+            employee=second_employee,
+            date_received=date(2025, 12, 3),
+        )
+        ClothesIssueItem.objects.create(
+            issue=second_issue,
+            item=self.item_12,
+            quantity=1,
+            operation_life_months=12,
+        )
+        self.issue_item(self.item_12, date(2025, 10, 1), 12)
+
+        result = build_dashboard_data(60, date(2026, 10, 4))
+
+        ordered_pairs = [
+            (row["status"], row["employee_name"], row["item_name"])
+            for row in result["tasks"]
+        ]
+        self.assertEqual(ordered_pairs, [
+            ("overdue", "Сроков Иван", "Каска"),
+            ("due_soon", "Абрамов Антон", "Каска"),
+            ("missing", "Абрамов Антон", "Куртка"),
+            ("missing", "Сроков Иван", "Куртка"),
+        ])
+
+    def test_expiry_tasks_include_employee_without_norm(self):
+        position_without_norm = Position.objects.create(name="Без нормы")
+        employee_without_norm = Employee.objects.create(
+            last_name="Свободнов",
+            first_name="Семен",
+            sex="M",
+            position=position_without_norm,
+        )
+        issue = ClothesIssue.objects.create(
+            employee=employee_without_norm,
+            date_received=date(2025, 10, 4),
+        )
+        ClothesIssueItem.objects.create(
+            issue=issue,
+            item=self.item_12,
+            quantity=1,
+            operation_life_months=12,
+        )
+
+        result = build_dashboard_data(60, date(2026, 10, 4))
+
+        employee_tasks = [
+            row for row in result["tasks"]
+            if row["employee_id"] == employee_without_norm.pk
+        ]
+        self.assertEqual(len(employee_tasks), 1)
+        self.assertEqual(employee_tasks[0]["status"], "overdue")
+        self.assertEqual(employee_tasks[0]["item_name"], "Каска")
+        self.assertNotIn("missing", {row["status"] for row in employee_tasks})
+
+    def test_summary_counts_unique_employees_not_ppe_rows(self):
+        self.issue_item(self.item_12, date(2025, 10, 1), 12)
+        self.issue_item(self.item_18, date(2025, 4, 1), 18)
+
+        result = build_dashboard_data(60, date(2026, 10, 4))
+
+        self.assertEqual(result["counts"]["overdue"], 1)
+        self.assertEqual(result["task_count"], 2)

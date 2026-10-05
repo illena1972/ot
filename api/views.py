@@ -41,6 +41,7 @@ import openpyxl
 from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from .dashboard import build_dashboard_data
 from openpyxl.worksheet.page import PageMargins
 
 
@@ -253,6 +254,13 @@ def get_order_report_limit_date(request):
         return None
 
     return parsed_date
+
+
+@api_view(["GET"])
+def dashboard(request):
+    organization = getattr(request, "organization", None)
+    warning_days = organization.ppe_warning_days if organization else 60
+    return Response(build_dashboard_data(warning_days, timezone.localdate()))
 
 
 def get_stock_quantity(item_id, size, height):
