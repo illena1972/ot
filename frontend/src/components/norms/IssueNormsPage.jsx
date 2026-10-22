@@ -1,10 +1,19 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import api from "../../api/api";
 import AlertModal from "../ui/AlertModal";
 
 const newRow = () => ({ item: "", quantity: 1, operation_life_months: 12 });
 const newForm = () => ({ name: "", description: "", position_ids: [], items: [newRow()] });
 const asList = (data) => (Array.isArray(data) ? data : data.results || []);
+
+function positionCountLabel(count) {
+  const lastTwoDigits = count % 100;
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) return `${count} позиций`;
+  const lastDigit = count % 10;
+  if (lastDigit === 1) return `${count} позиция`;
+  if (lastDigit >= 2 && lastDigit <= 4) return `${count} позиции`;
+  return `${count} позиций`;
+}
 
 function errorMessage(error) {
   return Object.values(error.response?.data || {}).flat(Infinity).find(
@@ -21,6 +30,8 @@ export default function IssueNormsPage() {
   const [deleteNorm, setDeleteNorm] = useState(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+  const [expandedNormIds, setExpandedNormIds] = useState(() => new Set());
 
   const loadData = useCallback(async () => {
     try {
@@ -91,6 +102,23 @@ export default function IssueNormsPage() {
     }
   };
 
+  const toggleNorm = (normId) => {
+    setExpandedNormIds((current) => {
+      const next = new Set(current);
+      if (next.has(normId)) next.delete(normId);
+      else next.add(normId);
+      return next;
+    });
+  };
+
+  const normalizedSearch = search.trim().toLocaleLowerCase("ru-RU");
+  const filteredNorms = norms.filter((norm) => {
+    if (!normalizedSearch) return true;
+    return [norm.name, norm.description, ...norm.position_names]
+      .filter(Boolean)
+      .some((value) => value.toLocaleLowerCase("ru-RU").includes(normalizedSearch));
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -103,37 +131,126 @@ export default function IssueNormsPage() {
         </button>
       </div>
 
+      <div className="border-y border-gray-200 bg-white px-5 py-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <label className="relative block w-full sm:max-w-md">
+            <span className="sr-only">Поиск нормы или должности</span>
+            <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Найти норму или должность"
+              className="form-control pl-10"
+            />
+          </label>
+          <div className="text-sm text-gray-500">
+            Показано норм: <span className="font-semibold text-gray-800">{filteredNorms.length}</span>
+            {filteredNorms.length !== norms.length && ` из ${norms.length}`}
+          </div>
+        </div>
+      </div>
+
       <div className="overflow-hidden border border-gray-200 bg-white">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full min-w-[920px] table-fixed text-left">
             <thead className="bg-gray-50 text-sm text-gray-500">
               <tr>
-                <th className="px-6 py-4 font-semibold">Норма</th>
-                <th className="px-6 py-4 font-semibold">Должности</th>
-                <th className="px-6 py-4 font-semibold">Состав</th>
-                <th className="px-6 py-4 text-right font-semibold">Действия</th>
+                <th className="w-16 px-5 py-4 text-center font-semibold">№</th>
+                <th className="w-[29%] px-5 py-4 font-semibold">Норма</th>
+                <th className="w-[37%] px-5 py-4 font-semibold">Должности</th>
+                <th className="w-44 px-5 py-4 font-semibold">Состав</th>
+                <th className="w-28 px-5 py-4 text-right font-semibold">Действия</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {norms.map((norm) => (
-                <tr key={norm.id}>
-                  <td className="px-6 py-4 align-top">
-                    <div className="font-semibold text-gray-800">{norm.name}</div>
-                    {norm.description && <div className="mt-1 text-sm text-gray-500">{norm.description}</div>}
-                  </td>
-                  <td className="px-6 py-4 align-top text-gray-700">{norm.position_names.length ? norm.position_names.join(", ") : "Не назначена"}</td>
-                  <td className="px-6 py-4 align-top text-sm text-gray-700">
-                    {norm.items.map((row) => <div key={row.id}>{row.item_name}: {row.quantity} шт., {row.operation_life_months} мес.</div>)}
-                  </td>
-                  <td className="px-6 py-4 align-top">
-                    <div className="flex justify-end gap-2">
-                      <button type="button" title="Редактировать" onClick={() => openEdit(norm)} className="icon-btn"><i className="fa-solid fa-pen" aria-hidden="true" /></button>
-                      <button type="button" title="Удалить" onClick={() => setDeleteNorm(norm)} className="icon-btn-danger"><i className="fa-regular fa-trash-can" aria-hidden="true" /></button>
-                    </div>
+              {filteredNorms.map((norm, index) => (
+                <Fragment key={norm.id}>
+                  <tr className="hover:bg-gray-50/70">
+                    <td className="px-5 py-5 text-center align-top font-semibold text-gray-500">{index + 1}</td>
+                    <td className="px-5 py-5 align-top">
+                      <button
+                        type="button"
+                        onClick={() => toggleNorm(norm.id)}
+                        className="text-left"
+                        aria-expanded={expandedNormIds.has(norm.id)}
+                        aria-controls={`norm-details-${norm.id}`}
+                      >
+                        <span className="text-lg font-bold text-gray-900 hover:text-blue-700">{norm.name}</span>
+                      </button>
+                      {norm.description && <div className="mt-2 text-sm leading-5 text-gray-500">{norm.description}</div>}
+                    </td>
+                    <td className="px-5 py-5 align-top text-gray-700">
+                      {norm.position_names.length ? (
+                        <div className="space-y-1.5">
+                          {norm.position_names.map((positionName) => (
+                            <div key={positionName} className="leading-5">{positionName}</div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">Не назначена</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-5 align-top">
+                      <button
+                        type="button"
+                        onClick={() => toggleNorm(norm.id)}
+                        className="inline-flex items-center gap-2 font-semibold text-blue-700 hover:text-blue-900"
+                        aria-expanded={expandedNormIds.has(norm.id)}
+                        aria-controls={`norm-details-${norm.id}`}
+                      >
+                        {positionCountLabel(norm.items.length)}
+                        <i className={`fa-solid fa-chevron-down text-xs transition-transform ${expandedNormIds.has(norm.id) ? "rotate-180" : ""}`} aria-hidden="true" />
+                      </button>
+                    </td>
+                    <td className="px-5 py-5 align-top">
+                      <div className="flex justify-end gap-2">
+                        <button type="button" title="Редактировать" onClick={() => openEdit(norm)} className="icon-btn"><i className="fa-solid fa-pen" aria-hidden="true" /></button>
+                        <button type="button" title="Удалить" onClick={() => setDeleteNorm(norm)} className="icon-btn-danger"><i className="fa-regular fa-trash-can" aria-hidden="true" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                  {expandedNormIds.has(norm.id) && (
+                    <tr id={`norm-details-${norm.id}`}>
+                      <td colSpan="5" className="bg-gray-50 px-5 py-5">
+                        <div className="mb-3 flex items-center justify-between gap-4">
+                          <h3 className="font-semibold text-gray-800">Состав нормы «{norm.name}»</h3>
+                          <span className="text-sm text-gray-500">Всего позиций: {norm.items.length}</span>
+                        </div>
+                        <div className="overflow-hidden border border-gray-200 bg-white">
+                          <table className="w-full table-fixed text-left">
+                            <thead className="bg-gray-100 text-sm text-gray-600">
+                              <tr>
+                                <th className="w-16 px-4 py-3 text-center font-semibold">№</th>
+                                <th className="px-4 py-3 font-semibold">Наименование СИЗ</th>
+                                <th className="w-36 px-4 py-3 text-center font-semibold">Количество</th>
+                                <th className="w-48 px-4 py-3 text-center font-semibold">Срок эксплуатации</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {norm.items.map((row, itemIndex) => (
+                                <tr key={row.id}>
+                                  <td className="px-4 py-3 text-center font-medium text-gray-500">{itemIndex + 1}</td>
+                                  <td className="px-4 py-3 font-medium leading-5 text-gray-800">{row.item_name}</td>
+                                  <td className="px-4 py-3 text-center text-gray-700">{row.quantity} шт.</td>
+                                  <td className="px-4 py-3 text-center text-gray-700">{row.operation_life_months} мес.</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+              {!filteredNorms.length && (
+                <tr>
+                  <td colSpan="5" className="px-6 py-10 text-center text-gray-500">
+                    {norms.length ? "Нормы по заданному поиску не найдены" : "Нормы пока не созданы"}
                   </td>
                 </tr>
-              ))}
-              {!norms.length && <tr><td colSpan="4" className="px-6 py-10 text-center text-gray-500">Нормы пока не созданы</td></tr>}
+              )}
             </tbody>
           </table>
         </div>
