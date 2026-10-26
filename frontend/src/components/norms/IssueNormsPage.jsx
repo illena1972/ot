@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import api from "../../api/api";
 import AlertModal from "../ui/AlertModal";
 
@@ -32,6 +32,7 @@ export default function IssueNormsPage() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [expandedNormIds, setExpandedNormIds] = useState(() => new Set());
+  const firstItemSelectRef = useRef(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -109,6 +110,11 @@ export default function IssueNormsPage() {
       else next.add(normId);
       return next;
     });
+  };
+
+  const addItem = () => {
+    setForm((current) => ({ ...current, items: [newRow(), ...current.items] }));
+    requestAnimationFrame(() => firstItemSelectRef.current?.focus());
   };
 
   const normalizedSearch = search.trim().toLocaleLowerCase("ru-RU");
@@ -291,7 +297,7 @@ export default function IssueNormsPage() {
             <div className="mt-6">
               <div className="mb-3 flex items-center justify-between">
                 <h4 className="font-semibold text-gray-800">Положенные СИЗ</h4>
-                <button type="button" onClick={() => setForm({ ...form, items: [...form.items, newRow()] })} className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700">
+                <button type="button" onClick={addItem} className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700">
                   <i className="fa-solid fa-plus" aria-hidden="true" /> Добавить позицию
                 </button>
               </div>
@@ -299,7 +305,7 @@ export default function IssueNormsPage() {
                 {form.items.map((row, index) => (
                   <div key={index} className="grid items-end gap-3 border-b border-gray-100 pb-3 md:grid-cols-[1fr_120px_170px_44px]">
                     <label className="text-sm text-gray-600">СИЗ
-                      <select required value={row.item} onChange={(e) => updateItem(index, "item", e.target.value)} className="form-control mt-1">
+                      <select ref={index === 0 ? firstItemSelectRef : undefined} required value={row.item} onChange={(e) => updateItem(index, "item", e.target.value)} className="form-control mt-1">
                         <option value="">Выберите</option>
                         {clothes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                       </select>
