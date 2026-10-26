@@ -7,6 +7,7 @@ from rest_framework.exceptions import ValidationError
 
 from .entitlements import build_employee_entitlements
 from .dashboard import build_dashboard_data
+from .demo_data import DemoDataAlreadyExists, seed_demo_database
 from .models import (
     ClothesIssue,
     ClothesIssueItem,
@@ -365,3 +366,33 @@ class DashboardTests(TestCase):
 
         self.assertEqual(result["counts"]["overdue"], 1)
         self.assertEqual(result["task_count"], 2)
+
+
+class DemoDataTests(TestCase):
+    def test_seed_builds_safe_presentation_scenarios(self):
+        today = date(2026, 10, 26)
+
+        result = seed_demo_database("default", today=today)
+        dashboard = build_dashboard_data(60, today)
+
+        self.assertEqual(result["employees"], 5)
+        self.assertEqual(result["norms"], 3)
+        self.assertEqual(result["items"], 7)
+        self.assertTrue({"overdue", "due_soon", "missing"}.issubset(
+            {row["status"] for row in dashboard["tasks"]}
+        ))
+
+        driver = Employee.objects.get(last_name="Кузнецов")
+        self.assertIsNone(driver.position.issue_norm)
+        driver_rows = [
+            row for row in dashboard["tasks"] if row["employee_id"] == driver.pk
+        ]
+        self.assertEqual(len(driver_rows), 1)
+        self.assertEqual(driver_rows[0]["status"], "overdue")
+
+    def test_seed_refuses_to_overwrite_existing_data_without_reset(self):
+        today = date(2026, 10, 26)
+        seed_demo_database("default", today=today)
+
+        with self.assertRaises(DemoDataAlreadyExists):
+            seed_demo_database("default", today=today)

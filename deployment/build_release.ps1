@@ -50,6 +50,7 @@ Copy-Item "$project\deployment\server\requirements.txt" "$release\requirements.t
 Copy-Item "$project\docs\add-organization-beget.md" "$release\ADD_ORGANIZATION.md"
 Copy-Item "$project\docs\deployment-modes.md" "$release\DEPLOYMENT_MODES.md"
 Copy-Item "$project\docs\database-backups.md" "$release\DATABASE_BACKUPS.md"
+Copy-Item "$project\docs\demo-organization.md" "$release\DEMO_ORGANIZATION.md"
 
 New-Item -ItemType Directory -Path "$release\config" | Out-Null
 Copy-Item "$project\deployment\config\*.example" "$release\config"
@@ -105,6 +106,7 @@ $requiredReleaseFiles = @(
     "deployment\server\update.sh",
     "deployment\server\backup.sh",
     "DATABASE_BACKUPS.md",
+    "DEMO_ORGANIZATION.md",
     "requirements.txt",
     "USER_GUIDE.pdf"
 )
