@@ -6,6 +6,20 @@ const newRow = () => ({ item: "", quantity: 1, operation_life_months: 12 });
 const newForm = () => ({ name: "", description: "", position_ids: [], items: [newRow()] });
 const asList = (data) => (Array.isArray(data) ? data : data.results || []);
 
+function formSnapshot(form) {
+  if (!form) return "";
+  return JSON.stringify({
+    name: form.name,
+    description: form.description,
+    position_ids: [...form.position_ids].map(Number).sort((a, b) => a - b),
+    items: form.items.map((row) => ({
+      item: String(row.item),
+      quantity: String(row.quantity),
+      operation_life_months: String(row.operation_life_months),
+    })),
+  });
+}
+
 function positionCountLabel(count) {
   const lastTwoDigits = count % 100;
   if (lastTwoDigits >= 11 && lastTwoDigits <= 14) return `${count} позиций`;
@@ -32,7 +46,10 @@ export default function IssueNormsPage() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [expandedNormIds, setExpandedNormIds] = useState(() => new Set());
+  const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false);
   const firstItemSelectRef = useRef(null);
+  const formElementRef = useRef(null);
+  const initialFormSnapshotRef = useRef("");
 
   const loadData = useCallback(async () => {
     try {
@@ -49,9 +66,15 @@ export default function IssueNormsPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  const openCreate = () => {
+    const nextForm = newForm();
+    setEditingId(null);
+    initialFormSnapshotRef.current = formSnapshot(nextForm);
+    setForm(nextForm);
+  };
+
   const openEdit = (norm) => {
-    setEditingId(norm.id);
-    setForm({
+    const nextForm = {
       name: norm.name,
       description: norm.description || "",
       position_ids: norm.position_ids,
@@ -60,7 +83,27 @@ export default function IssueNormsPage() {
         quantity: row.quantity,
         operation_life_months: row.operation_life_months,
       })),
-    });
+    };
+    setEditingId(norm.id);
+    initialFormSnapshotRef.current = formSnapshot(nextForm);
+    setForm(nextForm);
+  };
+
+  const closeForm = () => {
+    setShowUnsavedConfirm(false);
+    setForm(null);
+    setEditingId(null);
+    initialFormSnapshotRef.current = "";
+  };
+
+  const requestCloseForm = () => {
+    if (formSnapshot(form) === initialFormSnapshotRef.current) closeForm();
+    else setShowUnsavedConfirm(true);
+  };
+
+  const saveBeforeClose = () => {
+    setShowUnsavedConfirm(false);
+    requestAnimationFrame(() => formElementRef.current?.requestSubmit());
   };
 
   const updateItem = (index, field, value) => {
@@ -84,7 +127,7 @@ export default function IssueNormsPage() {
       };
       if (editingId) await api.put(`issue-norms/${editingId}/`, payload);
       else await api.post("issue-norms/", payload);
-      setForm(null);
+      closeForm();
       await loadData();
     } catch (requestError) {
       setError(errorMessage(requestError));
@@ -132,7 +175,7 @@ export default function IssueNormsPage() {
           <h2 className="text-3xl font-bold text-gray-800">Нормы выдачи</h2>
           <p className="mt-2 text-base text-gray-600">Состав СИЗ и сроки по должностям</p>
         </div>
-        <button type="button" onClick={() => { setEditingId(null); setForm(newForm()); }} className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700">
+        <button type="button" onClick={openCreate} className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700">
           <i className="fa-solid fa-plus" aria-hidden="true" /> Добавить норму
         </button>
       </div>
@@ -264,10 +307,10 @@ export default function IssueNormsPage() {
 
       {form && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <form onSubmit={saveNorm} className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
+          <form ref={formElementRef} onSubmit={saveNorm} className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
             <div className="mb-6 flex items-center justify-between">
               <h3 className="text-xl font-semibold text-gray-800">{editingId ? "Редактирование нормы" : "Новая норма"}</h3>
-              <button type="button" title="Закрыть" onClick={() => setForm(null)} className="icon-btn"><i className="fa-solid fa-xmark" aria-hidden="true" /></button>
+              <button type="button" title="Закрыть" onClick={requestCloseForm} disabled={saving} className="icon-btn disabled:cursor-not-allowed disabled:opacity-40"><i className="fa-solid fa-xmark" aria-hidden="true" /></button>
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
@@ -324,11 +367,25 @@ export default function IssueNormsPage() {
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
-              <button type="button" onClick={() => setForm(null)} className="rounded-lg border border-gray-300 px-5 py-2.5">Отмена</button>
+            <div className="sticky bottom-0 -mx-6 -mb-6 mt-6 flex justify-end gap-3 border-t border-gray-200 bg-white px-6 py-4 shadow-[0_-8px_18px_rgba(15,23,42,0.08)]">
+              <button type="button" onClick={requestCloseForm} disabled={saving} className="rounded-lg border border-gray-300 px-5 py-2.5 disabled:cursor-not-allowed disabled:opacity-40">Отмена</button>
               <button disabled={saving} type="submit" className="rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white disabled:bg-gray-400">{saving ? "Сохранение..." : "Сохранить"}</button>
             </div>
           </form>
+        </div>
+      )}
+
+      {showUnsavedConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="unsaved-norm-title" className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
+            <h3 id="unsaved-norm-title" className="text-xl font-semibold text-gray-800">Есть несохраненные изменения</h3>
+            <p className="mt-3 text-gray-600">Сохранить изменения нормы перед закрытием?</p>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setShowUnsavedConfirm(false)} className="rounded-lg border border-gray-300 px-5 py-2.5">Продолжить редактирование</button>
+              <button type="button" onClick={closeForm} className="rounded-lg border border-red-300 px-5 py-2.5 font-semibold text-red-700 hover:bg-red-50">Выйти без сохранения</button>
+              <button type="button" onClick={saveBeforeClose} className="rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white hover:bg-blue-700">Сохранить</button>
+            </div>
+          </div>
         </div>
       )}
 
