@@ -184,13 +184,13 @@ export default function IssueNormsPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <label className="relative block w-full sm:max-w-md">
             <span className="sr-only">Поиск нормы или должности</span>
-            <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+            <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true" />
             <input
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Найти норму или должность"
-              className="form-control pl-10"
+              className="form-control !pl-11"
             />
           </label>
           <div className="text-sm text-gray-500">

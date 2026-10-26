@@ -10,7 +10,7 @@ from docx.shared import Cm, Pt, RGBColor
 
 
 OUTPUT_DIR = Path(__file__).resolve().parent
-OUTPUT_PATH = OUTPUT_DIR / "Руководство пользователя СпецОдежда v2.3.3.docx"
+OUTPUT_PATH = OUTPUT_DIR / "Руководство пользователя СпецОдежда v2.3.4.docx"
 
 BLUE = "1D4ED8"
 DARK_BLUE = "163B65"
@@ -403,7 +403,7 @@ def configure_document(doc):
 
     header = section.header
     header_paragraph = header.paragraphs[0]
-    header_paragraph.text = "СпецОдежда | Руководство пользователя | Версия 2.3.3"
+    header_paragraph.text = "СпецОдежда | Руководство пользователя | Версия 2.3.4"
     header_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     for run in header_paragraph.runs:
         set_run_font(run, size=9, color=MID_GRAY)
@@ -439,7 +439,7 @@ def build_document():
     meta = doc.add_table(rows=3, cols=2)
     meta.style = "Table Grid"
     meta_rows = (
-        ("Версия программы", "2.3.3"),
+        ("Версия программы", "2.3.4"),
         ("Назначение", "Учет сотрудников, норм выдачи, спецодежды, СИЗ, склада и сроков эксплуатации"),
         ("Редакция документа", "26 октября 2026 г."),
     )
@@ -869,7 +869,7 @@ def build_document():
     add_note(
         doc,
         "Версия документа",
-        "Руководство описывает возможности программы «СпецОдежда» версии 2.3.3, включая нормы выдачи, контроль обеспеченности и рабочий экран контроля СИЗ. Разделение прав пользователей по ролям в эту версию не входит.",
+        "Руководство описывает возможности программы «СпецОдежда» версии 2.3.4, включая нормы выдачи, контроль обеспеченности и рабочий экран контроля СИЗ. Разделение прав пользователей по ролям в эту версию не входит.",
         "info",
     )
 
